@@ -32,7 +32,7 @@ cowboy
 Or find "Cowboy Update" in your application menu!
 
 ## Requirements
-- arch-update
+- pacman
 - paru
 - flatpak
 - libnotify (for notifications)
