@@ -69,5 +69,21 @@ cp cowboy.desktop ~/.local/share/applications/
 chmod +x ~/.local/share/applications/cowboy.desktop
 update-desktop-database ~/.local/share/applications/
 
+# Ask the user if they want a desktop shortcut
+read -p "Do you want to create a Cowboy Update shortcut on your desktop? (y/n): " choice
+if [[ "$choice" =~ ^[Yy]$ ]]; then
+    DESKTOP_FILE=~/Desktop/cowboy.desktop
+    cp ~/.local/share/applications/cowboy.desktop "$DESKTOP_FILE"
+    chmod +x "$DESKTOP_FILE"
+    
+    # For GNOME and some DEs, allow launching
+    if command -v gio &> /dev/null; then
+        gio set "$DESKTOP_FILE" "metadata::trusted" yes
+    fi
+    echo "✅ Desktop shortcut created!"
+else
+    echo "Desktop shortcut skipped."
+fi
+
 echo "Installation complete!"
-echo "You can now run 'cowboy' from the terminal or find it in your application menu."
+echo "You can now run 'cowboy' from the terminal or find it in your application menu/desktop"
