@@ -16,7 +16,11 @@ PACKAGES_UPDATED=0
 ORPHANS_REMOVED=0
 CACHE_CLEANED="0 MB"
 
-
+# Fail fast if no TTY
+if ! sudo -v; then
+    echo "Sudo authentication failed or no TTY available"
+    exit 1
+fi
 
 # Check Arch news
 echo "Checking recent Arch news..."
@@ -30,7 +34,12 @@ KERNEL_UPDATED=false
 # Update official repos
 echo "Updating official repositories..."
 # Capture pacman output to check if kernel was updated
-PACMAN_OUTPUT=$(sudo pacman -Syu 2>&1)
+PACMAN_LOG=$(mktemp)
+
+sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG"
+
+PACMAN_OUTPUT=$(cat "$PACMAN_LOG")
+rm "$PACMAN_LOG"
 echo "$PACMAN_OUTPUT"
 
 # Count packages updated
