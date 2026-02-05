@@ -32,7 +32,8 @@ Or find "Cowboy Update" in your application menu!
 - libnotify (for notifications)
 
 
-
+## NOTE
+Cowboy is currently made for CachyOS and cosmic-terminal in raw files. Using install script will detect your systems installed terminals and confirm your preferred terminal.
 
 
 ## Alternative methods
@@ -45,4 +46,4 @@ Place .desktop in correct location.
 Copy executable for your placement.
 Launch from executable or run cowboy in your terminal
 
-NOTE: Cowboy is currently made for CachyOS and cosmic-terminal
+NOTE: Cowboy is currently made for CachyOS and cosmic-terminal. Install script will detect your systems installed terminals and confirm your preferred terminal.
