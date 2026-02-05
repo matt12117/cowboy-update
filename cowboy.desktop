@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Cowboy
+Comment=Update Arch, AUR, and Flatpak
+Exec=cosmic-term -e /usr/local/bin/cowboy
+Icon=/home/matt/Documents/cowboy/western-hat-flat-icon.webp
+Terminal=true
+Type=Application
+Categories=System;
