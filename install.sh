@@ -13,6 +13,11 @@ if ! command -v arch-update &> /dev/null; then
     exit 1
 fi
 
+if ! command -v flatpak &> /dev/null; then
+    echo "Error: flatpak is not installed. Please install it first."
+    exit 1
+fi
+
 # Detect terminal emulator
 if command -v cosmic-term &> /dev/null; then
     TERMINAL="cosmic-term -e"
