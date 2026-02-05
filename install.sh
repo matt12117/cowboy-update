@@ -58,7 +58,7 @@ Name=Cowboy Update
 Comment=Update Arch, AUR, and Flatpak
 Exec=$TERMINAL /usr/local/bin/cowboy
 Icon=cowboy-icon
-Terminal=false
+Terminal=true
 Type=Application
 Categories=System;
 EOF
