@@ -1,2 +1,35 @@
 # cowboy-update
 Updater for Arch (Sys/AUR/Flatpak)
+--Cowboy Update v 0.2--
+
+check line 18 & 31 {}
+enable hidden files
+
+copy .sh to:
+/usr/local/bin/
+or (after permissions)
+sudo mv cowboy /usr/local/bin/
+
+exec perms:
+sudo chmod +x file
+or GUI
+
+copy .desktop to:
+/home/{name}/.local/share/applications/
+or (after permissions)
+sudo mv cowboy.desktop /home/{name}/.local/share/applications/
+
+exec perms:
+sudo chmod +x file
+or GUI
+
+
+desktop file edit Exec to your terminal:
+[Desktop Entry]
+Name=Cowboy
+Comment=Update Arch, AUR, and Flatpak
+Exec=cosmic-term{OR_YOUR_TERMINAL} -e /usr/local/bin/cowboy
+Icon=
+Terminal=true
+Type=Application
+Categories=System;
