@@ -27,13 +27,10 @@ echo -e "${CYAN}
 ${RESET}"
 read -p "Press Enter to begin..."
 
-
 # Track stats
 PACKAGES_UPDATED=0
 ORPHANS_REMOVED=0
 CACHE_CLEANED="0 MB"
-
-
 
 print_failure_art() {
 cat <<'EOF'
@@ -85,11 +82,10 @@ echo -e "${GREEN}Updating official repositories...${RESET}"
 # Capture pacman output to check if kernel was updated
 PACMAN_LOG=$(mktemp)
 
-sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG"
+sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG" | tee /dev/tty
 
 PACMAN_OUTPUT=$(cat "$PACMAN_LOG")
 rm "$PACMAN_LOG"
-echo "$PACMAN_OUTPUT"
 
 # Count packages updated
 PACKAGES_UPDATED=$(echo "$PACMAN_OUTPUT" | grep -c "upgrading")
@@ -165,8 +161,6 @@ if command -v flatpak &> /dev/null; then
     flatpak uninstall --unused -y > /dev/null 2>&1
 fi
 
-
-
 # Check for .pacnew and .pacsave files
 echo ""
 echo "Checking for .pacnew/.pacsave files..."
@@ -182,9 +176,6 @@ if [ -n "$PACSAVE_FILES" ]; then
     echo "Found .pacsave files:"
     echo "$PACSAVE_FILES"
 fi
-
-
-
 
 # List services using old libraries
 if command -v needrestart &> /dev/null; then
