@@ -16,6 +16,229 @@ PACKAGES_UPDATED=0
 ORPHANS_REMOVED=0
 CACHE_CLEANED="0 MB"
 
+
+
+print_failure_art() {
+cat <<'EOF'
+⠀⠀⢀⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣯
+⠀⠀⢩⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠘⢿⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⣿⠟⠋⠀
+⠀⢴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⣿⣿⡿⠿⣿⡿⢻⠟⣿⡟⠀⠈⠀⠙⠷⡝⠿⣝⠛⠛⠉⠛⠻⠿⠟⢿⣿⡿⠄⠀⠀⠀⠀⠀⠀
+⠶⠿⢿⣿⣿⣿⣿⣿⣿⣿⢻⡿⠁⠀⠀⠉⠀⠀⠀⠀⠀⠀⡼⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠛⠿⣿⣿⣿⡿⢿⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢚⣽⡟⠛⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠈⠍⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢷⡄⠀⠀⢴⣄⠘⠃⠀⠀⠀⠻⣿⡋⢀⢀⢀⡀⠀⠀⠀⠀⣿⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⠀⢠⣶⣶⣦⣤⣴⣚⣽⡏⣿⣿⣿⣿⣶⣭⣤⣄⠀⠀⣼⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⡜⡿⣿⣿⣿⢸⣿⣿⣿⣿⣿⣿⣿⡆⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⣶⣦⣝⣿⣿⡏⣼⣿⣿⣿⠘⣿⣿⣿⣿⣿⣿⣿⡇⠀⢹⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠿⡛⠁⣿⣿⣿⠈⠻⢙⢿⣿⣿⡟⠀⣿⣿⣿⣿⣿⣿⣿⠁⣿⡌⠃⠀⠀⢀⣿⣦⣀⠀⢀⣴⣿⣷⣦⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢘⣵⣿⣷⣼⣿⣿⡟⠀⢠⣿⣷⠙⣿⣧⡀⢿⣿⣿⣿⣿⣿⣿⡸⣿⠀⠀⠀⠀⣾⣿⣿⣿⣷⣝⢿⣿⣿⣿⣿
+⠀⠀⢀⣀⣠⣤⣴⣶⠶⢟⣼⣿⠿⠿⠿⠟⠋⠀⠀⢹⡿⠃⢠⣿⣿⣿⣿⣿⣿⠿⢟⣫⣿⣇⠏⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⣷⣮⡻⣿⣿
+⣾⣿⣿⣿⣿⣿⣿⣆⢸⣿⣿⣿⣿⣿⣿⣶⣶⣶⣤⣘⡀⠀⠈⠻⣿⣿⠿⠿⠾⠿⢛⣿⣿⠃⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⠟⢠⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⡎⣿⣿⡿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣤⡘⢿⣷⣶⣶⣶⣿⣿⡏⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⡿⠛⠁⣠⣾⣿⣿
+⣿⣿⣿⣿⣿⣿⡻⠟⢸⣿⣿⣿⣿⣶⣮⣭⣟⣛⣛⠿⣿⣿⠏⠉⠙⠷⣝⣿⣿⣿⣿⠟⠀⠀⠀⠀⣠⣿⣿⣿⣿⠟⠉⠀⣠⣾⣿⣿⣿⣿
+⠉⠉⠛⠻⠿⣿⣿⣷⡄⠙⠿⠿⢿⣿⣿⣿⣿⣿⠛⠋⠀⠀⠀⠀⠀⠀⠀⠈⠛⠉⠀⠀⠀⠀⠀⣰⣿⡿⠟⠋⠁⠀⣠⣾⣿⣿⣿⣿⣿⣿
+⠿⠷⢶⠦⠀⠈⠛⣽⡇⠀⠀⠀⣀⣀⣈⡉⠙⠛⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⢠⣾⠟⠁⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⠟
+⣴⣾⣿⠿⢂⢰⢷⣿⡄⠀⠀⠀⠀⠙⠻⠿⣿⣶⠶⠄⠀⠀⠀⣴⣾⣷⠀⠀⠀⠀⠀⠀⢰⣿⡟⠀⠀⠀⠀⡀⠀⢸⣿⣿⣿⣿⣿⡿⠋⠀
+⠟⠉⣠⣾⡟⣾⣼⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠀⡄⠀⠀⣽⣿⣦⡀⠀⠀⠀⢀⣿⣿⡇⠀⠀⠀⢀⣿⡀⠈⣿⣿⣿⣿⡟⠁⠀⠀
+⢠⣾⣿⣿⢣⣿⣿⡟⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠃⠀⢻⡀⠈⠛⠿⣯⡀⠀⠀⢀⣾⡿⠿⠃⣠⡆⠀⠀⣿⣧⠀⢹⣿⣿⣿⣷⣄⠀⠀
+⣿⣿⣿⣿⣸⣿⢹⣷⡙⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣦⡀⠀⢠⡉⠃⢠⢋⣤⠀⢠⣾⣿⡇⠀⢀⠘⣿⡄⠈⣿⣿⣿⣿⣿⣷⣤
+⣿⣿⣿⣿⣿⣿⡎⢿⣿⡌⠻⣷⡄⠀⠀⠀⠀⠀⠀⠀⢰⢹⣿⣿⣿⣦⡀⠻⣤⣦⣾⢃⣴⣿⣿⣿⠃⠀⢸⣆⠘⠇⠀⢹⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⡈⠛⠋⠀⠈⠙⠆⠀⠀⠀⠀⠀⠀⠁⠀⣿⣿⣿⣿⣿⡄⣿⣿⣿⣿⣿⣿⣿⠃⣼⠁⠀⣿⣿⣶⡄⠘⣿⣿⣿⣿⣿⣿
+EOF
+}
+
+# Fail fast if no TTY
+if ! sudo -v; then
+    echo "Sudo authentication failed or no TTY available"
+    exit 1
+fi
+
+# Check Arch news
+echo "Checking recent Arch news..."
+curl -s https://archlinux.org/feeds/news/ | grep -oP '(?<=<title>).*?(?=</title>)' | head -n 5 | tail -n 4
+echo ""
+read -p "Press Enter to continue with updates..."
+
+# Track if kernel was updated during this run
+KERNEL_UPDATED=false
+
+# Update official repos
+echo "Updating official repositories..."
+# Capture pacman output to check if kernel was updated
+PACMAN_LOG=$(mktemp)
+
+sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG"
+
+PACMAN_OUTPUT=$(cat "$PACMAN_LOG")
+rm "$PACMAN_LOG"
+echo "$PACMAN_OUTPUT"
+
+# Count packages updated
+PACKAGES_UPDATED=$(echo "$PACMAN_OUTPUT" | grep -c "upgrading")
+
+# Check for any kernel package update (CachyOS or standard Arch)
+if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|linux-hardened'; then
+    KERNEL_UPDATED=true
+fi
+
+if echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
+        echo "pacman failed!"
+        print_failure_art
+        notify-send -a "Cowboy Update" -i cowboy-icon "Update Failed" "pacman failed"
+        exit 1
+    fi
+
+echo "Updating AUR packages..."
+if ! paru -Sua; then
+    echo "paru failed!"
+    print_failure_art
+    notify-send -a "Cowboy Update" -i dialog-error "Update Failed" "paru failed"
+fi
+
+echo "Updating Flatpak packages..."
+if ! flatpak update; then
+    echo "flatpak failed!"
+    print_failure_art
+    notify-send -a "Cowboy Update" -i dialog-error "Update Failed" "flatpak failed"
+fi
+
+
+# Check for orphaned packages
+echo ""
+echo "Checking for orphaned packages..."
+ORPHANS=$(pacman -Qtdq 2>/dev/null)
+if [ -n "$ORPHANS" ]; then
+    ORPHANS_REMOVED=$(echo "$ORPHANS" | wc -l)
+    echo "Found orphaned packages:"
+    echo "$ORPHANS"
+    read -p "Remove them? (y/n): " choice
+    if [[ $choice == "y" || $choice == "Y" ]]; then
+        sudo pacman -Rns $ORPHANS --noconfirm
+    else
+        ORPHANS_REMOVED=0
+    fi
+else
+    echo "No orphaned packages found."
+    ORPHANS_REMOVED=0
+fi
+
+
+
+# Clean package cache (keep last 2 versions)
+echo ""
+echo "Cleaning package cache..."
+if command -v paccache &> /dev/null; then
+
+    CACHE_BEFORE=$(sudo du -sm /var/cache/pacman/pkg/ | awk '{print $1}')
+    
+    sudo paccache -rk2 > /dev/null 2>&1
+    sudo paccache -ruk0 > /dev/null 2>&1
+    
+    CACHE_AFTER=$(sudo du -sm /var/cache/pacman/pkg/ | awk '{print $1}')
+    CACHE_CLEANED="$((CACHE_BEFORE - CACHE_AFTER)) MB"
+else
+    echo "paccache not found (install pacman-contrib)"
+    CACHE_CLEANED="0 MB"
+fi
+
+# Clean Flatpak cache
+if command -v flatpak &> /dev/null; then
+    echo "Cleaning Flatpak cache..."
+    flatpak uninstall --unused -y > /dev/null 2>&1
+fi
+
+
+
+# Check for .pacnew and .pacsave files
+echo ""
+echo "Checking for .pacnew/.pacsave files..."
+PACNEW_FILES=$(sudo find /etc -name "*.pacnew" 2>/dev/null)
+PACSAVE_FILES=$(sudo find /etc -name "*.pacsave" 2>/dev/null)
+
+if [ -n "$PACNEW_FILES" ]; then
+    echo "Found .pacnew files:"
+    echo "$PACNEW_FILES"
+fi
+
+if [ -n "$PACSAVE_FILES" ]; then
+    echo "Found .pacsave files:"
+    echo "$PACSAVE_FILES"
+fi
+
+
+
+
+# List services using old libraries
+if command -v needrestart &> /dev/null; then
+    echo "Checking for services needing restart..."
+    sudo needrestart -l
+fi
+
+
+# Show disk space saved
+BEFORE=$(df / | tail -1 | awk '{print $4}')
+# ... do updates and cleaning ...
+AFTER=$(df / | tail -1 | awk '{print $4}')
+SAVED=$((AFTER - BEFORE))
+echo "Freed up: $((SAVED / 1024)) MB"
+
+# Check if reboot needed
+if [ "$KERNEL_UPDATED" = true ]; then
+    echo ""
+    echo "⚠️  REBOOT REQUIRED - Kernel was updated! ⚠️"
+    notify-send -a "Cowboy" -u critical -i cowboy-icon "Reboot Required" "Kernel was updated during this session"
+fi
+
+echo "+------------------------------------+"
+echo "| SUCCESS! YOU CARRIED THAT WEIGHT!  |"
+echo "+------------------------------------+"
+    echo "⣿⣿⣿⣿⣿⡿⠛⠋⠙⠉⠋⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠿⠿⢿⣿⣿⣿⣿
+⣿⣿⣿⣿⣥⣴⣶⣿⣿⣿⣿⣷⣦⡈⠙⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣁⣤⣤⣶⣶⣤⣤⣈⣻⣿⣿
+⣿⣿⣿⣿⡿⠿⠛⠛⠻⠿⣿⣿⣿⣿⣧⣈⣿⣿⣿⣿⣿⣿⠏⣡⣾⣿⣿⣿⣿⡿⠿⢿⣿⣿⣿⣿
+⣿⣿⣿⡏⠀⡀⠂⠄⡁⠐⢘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⠀⡀⠄⠠⠀⠙⣿⣿
+⣿⡿⢿⣷⣦⣤⣥⣴⣤⣵⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣤⣁⣀⣂⣁⣬⣴⡿⢿
+⣿⠀⣦⣉⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠋⣡⣴⠈
+⣧⠀⣿⣿⢰⣦⣬⣉⠛⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠟⠋⣉⣤⣶⢐⣿⣿⠀
+⣿⠀⣿⡿⢸⣿⣿⣿⣿⠀⣤⣤⣍⣉⣙⠙⠛⠛⠛⠛⠛⠉⣉⣉⣥⣤⣤⠀⣿⣿⣿⣿⢸⣿⡟⢠
+⣿⡄⢻⡇⢸⣿⣿⣿⣿⠀⣿⣿⣿⣿⣿⠀⣿⣿⣿⣿⡿⠀⣿⣿⣿⣿⡇⠠⣿⣿⣿⡿⢸⣿⠇⣼
+⣿⣷⡈⠇⢸⣿⣿⣿⣿⠀⣿⣿⣿⣿⣿⠀⣿⣿⣿⣿⡇⢈⣿⣿⣿⣿⡇⢸⣿⣿⣿⡇⢸⡟⢠⣿
+⣿⣿⣷⡀⢸⣿⣿⣿⣿⠀⣿⣿⣿⣿⣿⠀⣿⣿⣿⣿⡇⢸⣿⣿⣿⣿⡇⢸⣿⣿⣿⡇⠘⢠⣿⣿
+⣿⣿⣿⣷⣌⠻⣿⣿⣿⠀⣿⣿⣿⣿⣿⠀⣿⣿⣿⣿⡇⢸⣿⣿⣿⣿⡇⢸⣿⣿⡿⠃⣰⣿⣿⣿
+⣿⣿⣿⣿⣿⣧⡈⠻⡏⠠⣿⣿⣿⣿⡏⠐⣿⣿⣿⣿⡇⢸⣿⣿⣿⣿⡇⢸⡿⠛⣡⣾⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣷⣄⡐⠻⢿⣿⣿⡇⢨⣿⣿⣿⣿⡇⢸⣿⣿⣿⡿⠃⣈⣤⣾⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣬⣉⣃⠘⠛⠛⠛⠛⠃⠘⣛⣉⣥⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿"
+
+#Summary
+echo "+------------------------------------+"
+echo "|         UPDATE SUMMARY             |"
+echo "+------------------------------------+"
+printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
+#printf "| %-34s |\n" "Space Saved: $((SAVED / 1024)) MB"
+printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
+printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
+printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
+echo "+------------------------------------+"
+
+    notify-send -a "Cowboy Update" -i system-software-update "Update Complete" "All updates successful!"
+read -p "Press Enter to close, space cowboy..."#!/bin/bash
+echo "
+╔═══════════════════════════════════╗
+║                                   ║
+║                                   ║
+║      COWBOY_UPDATE SCRIPT         ║
+║                                   ║
+║                                   ║
+╔═══════════════════════════════════╝⠀⠀ ⠀⠀
+"
+read -p "Press Enter to begin..."
+
+
+# Track stats
+PACKAGES_UPDATED=0
+ORPHANS_REMOVED=0
+CACHE_CLEANED="0 MB"
+
 # Fail fast if no TTY
 if ! sudo -v; then
     echo "Sudo authentication failed or no TTY available"
