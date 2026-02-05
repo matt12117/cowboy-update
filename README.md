@@ -7,7 +7,7 @@ Update wrapper for Arch (Sys/AUR/Flatpak)
 - Updates official repos (via pacman)
 - Updates AUR packages (via paru)
 - Updates Flatpaks
-- Checks if kernal update and reboot reminder
+- Checks if kernel updated and reboot reminder
 - Removes Orphans
 - Cleans package cache (keep last 2 versions)
 - Cleans flatpak cache
