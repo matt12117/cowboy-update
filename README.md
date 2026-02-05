@@ -1,6 +1,6 @@
 # cowboy-update
 Update wrapper for Arch (Sys/AUR/Flatpak)
---Cowboy Update v 0.2--
+--Cowboy Update v0.3--
 
 
 ## Features
