@@ -14,8 +14,11 @@ if ! command -v arch-update &> /dev/null; then
 fi
 
 # Copy script to /usr/local/bin
-sudo cp cowboy.sh /usr/local/bin/cowboy
+sudo cp cowboy /usr/local/bin/cowboy
 sudo chmod +x /usr/local/bin/cowboy
+
+# Copy icon to system pixmaps
+sudo cp cowboy-icon.png /usr/share/pixmaps/cowboy-icon.png
 
 # Copy desktop file to applications
 mkdir -p ~/.local/share/applications
