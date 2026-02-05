@@ -67,6 +67,7 @@ EOF
 mkdir -p ~/.local/share/applications
 cp cowboy.desktop ~/.local/share/applications/
 chmod +x ~/.local/share/applications/cowboy.desktop
+update-desktop-database ~/.local/share/applications/
 
 echo "Installation complete!"
 echo "You can now run 'cowboy' from the terminal or find it in your application menu."
