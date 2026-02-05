@@ -82,7 +82,7 @@ echo -e "${GREEN}Updating official repositories...${RESET}"
 # Capture pacman output to check if kernel was updated
 PACMAN_LOG=$(mktemp)
 
-sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG" | tee /dev/tty
+sudo pacman -Syu 2>&1 | tee "$PACMAN_LOG"
 
 PACMAN_OUTPUT=$(cat "$PACMAN_LOG")
 rm "$PACMAN_LOG"
