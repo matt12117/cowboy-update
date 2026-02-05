@@ -1,5 +1,5 @@
 # cowboy-update
-Updater wrapper for Arch (Sys/AUR/Flatpak)
+Update wrapper for Arch (Sys/AUR/Flatpak)
 --Cowboy Update v 0.2--
 Uses Arch-update, paru -Sua, and flatpak update in a wrap.
 Returns a terminal confirmation and notifcation for success or errors.
