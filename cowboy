@@ -27,6 +27,53 @@ echo -e "${CYAN}
 ${RESET}"
 read -p "Press Enter to begin..."
 
+
+APP_DIR="$HOME/cowboy-update"  # path where user cloned the repo
+BRANCH="main"                  # your default Git branch
+
+self_update() {
+    # Make sure git exists
+    if ! command -v git &>/dev/null; then
+        echo "git is required for self-update, skipping..."
+        return
+    fi
+
+    # Go to app directory
+    cd "$APP_DIR" || return
+
+    # Fetch latest changes
+    git fetch origin "$BRANCH" --quiet
+
+    LOCAL_HASH=$(git rev-parse HEAD)
+    REMOTE_HASH=$(git rev-parse origin/"$BRANCH")
+
+    if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
+        echo -e "\e[33mA new update for Cowboy Update is available!\e[0m"
+        read -rp "Do you want to update now? (y/N): " choice
+        case "$choice" in
+            y|Y)
+                echo -e "\e[32mUpdating Cowboy Update...\e[0m"
+                git pull origin "$BRANCH" --quiet
+
+                # Update desktop file if it exists
+                if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
+                    cp "$APP_DIR/cowboy_update.desktop" "$HOME/.local/share/applications/" 2>/dev/null
+                fi
+
+                echo -e "\e[32mUpdate complete! Relaunching...\e[0m"
+                exec "$0" "$@"  # restart script
+                ;;
+            *)
+                echo "Update skipped."
+                ;;
+        esac
+    else
+        echo -e "\e[32mCowboy-update is on latest version.\e[0m"
+    fi
+}
+
+self_update
+
 # Track stats
 PACKAGES_UPDATED=0
 ORPHANS_REMOVED=0
