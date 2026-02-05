@@ -36,6 +36,7 @@ Or find "Cowboy Update" in your application menu!
 - paru
 - flatpak
 - libnotify (for notifications)
+- pacman-contrib (paccache)
 
 
 ## NOTE
