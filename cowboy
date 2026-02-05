@@ -9,20 +9,7 @@ echo "
 ╔═══════════════════════════════════╝⠀⠀ ⠀⠀
 "
 read -p "Press Enter to begin..."
-# Progress spinner function
-spinner() {
-    local pid=$!
-    local delay=0.1
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    while kill -0 $pid 2>/dev/null; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
-}
+
 
 # Track stats
 PACKAGES_UPDATED=0
@@ -54,8 +41,7 @@ if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|l
     KERNEL_UPDATED=true
 fi
 
-if ! echo "$PACMAN_OUTPUT" | grep -q "there is nothing to do"; then
-    if [ $? -ne 0 ]; then
+if echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
         echo "pacman failed!"
         echo "⠀⠀⢀⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣯
 ⠀⠀⢩⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠘⢿⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⣿⠟⠋⠀
@@ -85,7 +71,6 @@ if ! echo "$PACMAN_OUTPUT" | grep -q "there is nothing to do"; then
         notify-send -a "Cowboy Update" -i cowboy-icon "Update Failed" "pacman failed"
         exit 1
     fi
-fi
 
 echo "Updating AUR packages..."
 if ! paru -Sua; then
@@ -175,11 +160,12 @@ fi
 echo ""
 echo "Cleaning package cache..."
 if command -v paccache &> /dev/null; then
+
     CACHE_BEFORE=$(sudo du -sm /var/cache/pacman/pkg/ | awk '{print $1}')
-    sudo paccache -rk2 > /dev/null 2>&1 & spinner
-    wait
-    sudo paccache -ruk0 > /dev/null 2>&1 & spinner
-    wait
+    
+    sudo paccache -rk2 > /dev/null 2>&1
+    sudo paccache -ruk0 > /dev/null 2>&1
+    
     CACHE_AFTER=$(sudo du -sm /var/cache/pacman/pkg/ | awk '{print $1}')
     CACHE_CLEANED="$((CACHE_BEFORE - CACHE_AFTER)) MB"
 else
@@ -190,8 +176,7 @@ fi
 # Clean Flatpak cache
 if command -v flatpak &> /dev/null; then
     echo "Cleaning Flatpak cache..."
-    flatpak uninstall --unused -y > /dev/null 2>&1 & spinner
-    wait
+    flatpak uninstall --unused -y > /dev/null 2>&1
 fi
 
 
@@ -258,6 +243,7 @@ echo "+------------------------------------+"
 echo "|         UPDATE SUMMARY             |"
 echo "+------------------------------------+"
 printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
+#printf "| %-34s |\n" "Space Saved: $((SAVED / 1024)) MB"
 printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
