@@ -49,7 +49,7 @@ sudo cp cowboy-icon.png /usr/share/pixmaps/cowboy-icon.png
 # Create desktop file with detected terminal
 cat > cowboy.desktop << EOF
 [Desktop Entry]
-Name=Cowboy
+Name=Cowboy Update
 Comment=Update Arch, AUR, and Flatpak
 Exec=$TERMINAL /usr/local/bin/cowboy
 Icon=cowboy-icon
