@@ -4,8 +4,10 @@ Updater wrapper for Arch (Sys/AUR/Flatpak)
 Uses Arch-update, paru -Sua, and flatpak update in a wrap.
 Returns a terminal confirmation and notifcation for success or errors.
 
-Give Cowboy.sh and .desktop executable permissions.
-Place Cowboy .sh and .desktop in correct folders.
+Give Cowboy .sh and .desktop executable permissions.
+Place Cowboy shell script in correct location
+Edit .desktop in txt to point to shell script and add ICON location
+Place .desktop in correct location.
 Copy executable for your placement.
 Launch from executable or run cowboy in your terminal
 
