@@ -1,4 +1,14 @@
 #!/bin/bash
+echo "
+╔═══════════════════════════════════╗
+║                                   ║
+║                                   ║
+║      COWBOY_UPDATE SCRIPT         ║
+║                                   ║
+║                                   ║
+╔═══════════════════════════════════╝⠀⠀ ⠀⠀
+"
+read -p "Press Enter to begin..."
 # Progress spinner function
 spinner() {
     local pid=$!
