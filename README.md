@@ -30,10 +30,12 @@ Or find "Cowboy Update" in your application menu!
 - paru
 - flatpak
 - libnotify (for notifications)
-Uses Arch-update, paru -Sua, and flatpak update in a wrap.
-Returns a terminal confirmation and notifcation for success or errors.
 
 
+
+
+
+## Alternative methods
 If you do not want to run install script and would like replicate/edit code yourself:
 dl/copy code for Cowboy .sh and .desktop (txt format before .desktop declared) 
 Edit .desktop in txt to point to shell script and add ICON location
