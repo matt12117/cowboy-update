@@ -1,5 +1,22 @@
 #!/bin/bash
-echo "
+
+# Colors (only if output is a TTY)
+if [ -t 1 ]; then
+    RED="\e[31m"
+    GREEN="\e[32m"
+    YELLOW="\e[33m"
+    BLUE="\e[34m"
+    MAGENTA="\e[35m"
+    CYAN="\e[36m"
+    BOLD="\e[1m"
+    DIM="\e[2m"
+    RESET="\e[0m"
+else
+    RED=""; GREEN=""; YELLOW=""; BLUE=""
+    MAGENTA=""; CYAN=""; BOLD=""; DIM=""; RESET=""
+fi
+
+echo -e "${CYAN}
 ╔═══════════════════════════════════╗
 ║                                   ║
 ║                                   ║
@@ -7,7 +24,7 @@ echo "
 ║                                   ║
 ║                                   ║
 ╔═══════════════════════════════════╝⠀⠀ ⠀⠀
-"
+${RESET}"
 read -p "Press Enter to begin..."
 
 
@@ -55,7 +72,7 @@ if ! sudo -v; then
 fi
 
 # Check Arch news
-echo "Checking recent Arch news..."
+echo -e "${BOLD}Checking recent Arch news...${RESET}"
 curl -s https://archlinux.org/feeds/news/ | grep -oP '(?<=<title>).*?(?=</title>)' | head -n 5 | tail -n 4
 echo ""
 read -p "Press Enter to continue with updates..."
@@ -64,7 +81,7 @@ read -p "Press Enter to continue with updates..."
 KERNEL_UPDATED=false
 
 # Update official repos
-echo "Updating official repositories..."
+echo -e "${GREEN}Updating official repositories...${RESET}"
 # Capture pacman output to check if kernel was updated
 PACMAN_LOG=$(mktemp)
 
@@ -83,22 +100,22 @@ if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|l
 fi
 
 if echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
-        echo "pacman failed!"
+        echo -e "${YELLOW}pacman failed!${RESET}"
         print_failure_art
         notify-send -a "Cowboy Update" -i cowboy-icon "Update Failed" "pacman failed"
         exit 1
     fi
 
-echo "Updating AUR packages..."
+echo -e "${GREEN}Updating AUR packages...${RESET}"
 if ! paru -Sua; then
-    echo "paru failed!"
+    echo -e "${YELLOW}paru failed!${RESET}"
     print_failure_art
     notify-send -a "Cowboy Update" -i dialog-error "Update Failed" "paru failed"
 fi
 
-echo "Updating Flatpak packages..."
+echo -e "${GREEN}Updating Flatpak packages...${RESET}"
 if ! flatpak update; then
-    echo "flatpak failed!"
+    echo -e "${YELLOW}flatpak failed!${RESET}"
     print_failure_art
     notify-send -a "Cowboy Update" -i dialog-error "Update Failed" "flatpak failed"
 fi
@@ -191,7 +208,7 @@ if [ "$KERNEL_UPDATED" = true ]; then
 fi
 
 echo "+------------------------------------+"
-echo "| SUCCESS! YOU CARRIED THAT WEIGHT!  |"
+echo -e "|${GREEN} SUCCESS! YOU CARRIED THAT WEIGHT!${RESET}  |"
 echo "+------------------------------------+"
     echo "⣿⣿⣿⣿⣿⡿⠛⠋⠙⠉⠋⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠿⠿⢿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣥⣴⣶⣿⣿⣿⣿⣷⣦⡈⠙⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣁⣤⣤⣶⣶⣤⣤⣈⣻⣿⣿
