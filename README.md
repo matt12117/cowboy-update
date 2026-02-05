@@ -5,7 +5,7 @@ Update wrapper for Arch (Sys/AUR/Flatpak)
 
 ## Features
 - Updates official repos (via arch-update)
-- Updates AUR packages (via paru)  
+- Updates AUR packages (via paru) (your arch-update may be already configured to update AUR, if so paru will run but no updates)
 - Updates Flatpaks
 - Desktop notifications on success/failure
 
