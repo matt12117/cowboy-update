@@ -38,8 +38,8 @@ Cowboy is currently made for CachyOS and cosmic-terminal in raw files. Using ins
 
 ## Alternative methods
 If you do not want to run install script and would like replicate/edit code yourself:<br>
-dl/copy code for Cowboy .sh and .desktop (txt format before .desktop declared) <br>
-Edit .desktop in txt to point to shell script and add ICON location<br>
+dl/copy files (excluding install.sh) for Cowboy and .desktop (rename and delete .desktop extension so it is txt format) <br>
+Edit .desktop in txt to point to shell script and add ICON location.[LOCATIONS IN README] Add the .desktop extension back to the file<br>
 Give Cowboy .sh and .desktop executable permissions.<br>
 Place Cowboy shell script in correct location<br>
 Place .desktop in correct location.<br>
