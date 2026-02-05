@@ -18,25 +18,30 @@ if ! command -v flatpak &> /dev/null; then
     exit 1
 fi
 
-# Detect terminal emulator
-if command -v cosmic-term &> /dev/null; then
-    TERMINAL="cosmic-term -e"
-elif command -v konsole &> /dev/null; then
-    TERMINAL="konsole -e"
-elif command -v gnome-terminal &> /dev/null; then
-    TERMINAL="gnome-terminal --"
-elif command -v alacritty &> /dev/null; then
-    TERMINAL="alacritty -e"
-elif command -v kitty &> /dev/null; then
-    TERMINAL="kitty -e"
-elif command -v xterm &> /dev/null; then
-    TERMINAL="xterm -e"
-else
-    echo "Warning: No supported terminal found. Using xterm as fallback."
-    TERMINAL="xterm -e"
-fi
+# Detect available terminals
+TERMINALS=()
+command -v cosmic-term &> /dev/null && TERMINALS+=("cosmic-term -e")
+command -v konsole &> /dev/null && TERMINALS+=("konsole -e")
+command -v gnome-terminal &> /dev/null && TERMINALS+=("gnome-terminal --")
+command -v alacritty &> /dev/null && TERMINALS+=("alacritty -e")
+command -v kitty &> /dev/null && TERMINALS+=("kitty -e")
+command -v xterm &> /dev/null && TERMINALS+=("xterm -e")
 
-echo "Detected terminal: $TERMINAL"
+if [ ${#TERMINALS[@]} -eq 0 ]; then
+    echo "Error: No supported terminal found."
+    exit 1
+elif [ ${#TERMINALS[@]} -eq 1 ]; then
+    TERMINAL="${TERMINALS[0]}"
+    echo "Using terminal: $TERMINAL"
+else
+    echo "Multiple terminals detected:"
+    for i in "${!TERMINALS[@]}"; do
+        echo "$((i+1)). ${TERMINALS[$i]}"
+    done
+    read -p "Which terminal do you want to use? (1-${#TERMINALS[@]}): " choice
+    TERMINAL="${TERMINALS[$((choice-1))]}"
+    echo "Using terminal: $TERMINAL"
+fi
 
 
 # Copy script to /usr/local/bin
