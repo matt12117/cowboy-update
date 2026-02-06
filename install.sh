@@ -88,9 +88,11 @@ ln -sf "$SCRIPT" "$BIN_DIR/$BIN_NAME"
 echo "✓ Created symlink: $BIN_DIR/$BIN_NAME -> $SCRIPT"
 
 # ---- Create uninstall symlink ----
-if [ -f "$REPO_DIR/uninstall.sh" ]; then
-    chmod +x "$REPO_DIR/uninstall.sh"
-    ln -sf "$REPO_DIR/uninstall.sh" "$BIN_DIR/cowboy-uninstall"
+UNINSTALL_SCRIPT="$REPO_DIR/uninstall.sh"
+if [ -f "$UNINSTALL_SCRIPT" ]; then
+    chmod +x "$UNINSTALL_SCRIPT"
+    [ -L "$BIN_DIR/cowboy-uninstall" ] && rm "$BIN_DIR/cowboy-uninstall"
+    ln -sf "$UNINSTALL_SCRIPT" "$BIN_DIR/cowboy-uninstall"
     echo "✓ Created uninstall command: cowboy-uninstall"
 fi
 
@@ -139,12 +141,13 @@ echo "Creating desktop entry..."
 DESKTOP_FILE="$HOME/.local/share/applications/cowboy.desktop"
 mkdir -p "$(dirname "$DESKTOP_FILE")"
 
+# Use full path to cowboy for reliability
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Cowboy Update
 Comment=Update Arch, AUR, and Flatpak packages
-Exec=$TERMINAL $BIN_NAME
-Icon=cowboy-icon
+Exec=$TERMINAL $BIN_DIR/$BIN_NAME
+Icon=system-software-update
 Terminal=true
 Type=Application
 Categories=System;Settings;PackageManager;
@@ -183,7 +186,8 @@ echo "✅ Installation complete!"
 echo "════════════════════════════════════════"
 echo ""
 echo "Usage:"
-echo "  • Command line: cowboy"
+echo "  • Run updates: cowboy"
+echo "  • Uninstall: cowboy-uninstall"
 echo "  • Application menu: Search for 'Cowboy Update'"
 if [ -f "$HOME/Desktop/cowboy.desktop" ]; then
     echo "  • Desktop: Double-click the desktop icon"
