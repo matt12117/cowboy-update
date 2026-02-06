@@ -26,6 +26,17 @@ echo "⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⣤⣤⣭⣍⣩⣭⣤⣬⠹⣿⣿⣿⣿⣿�
 ⣿⣿⣿⣿⣿⣷⣿⣿⣷⡙⢾⣧⠘⣿⣿⢸⣿⡴⢃⣾⣿⣿⣿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⠻⡆⢹⣿⡿⢋⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿"
 echo -e "\e[1mCowboy-Update|$VERSION by sunny\e[0m"
+
+# Check if already installed
+if [ -L "$BIN_DIR/$BIN_NAME" ]; then
+    echo "Cowboy-Update is already installed."
+    read -p "Reinstall? (y/n): " reinstall
+    if [[ ! "$reinstall" =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+fi
+
 echo "Installing Cowboy-Update..."
 
 REPO_DIR="$HOME/cowboy-update"
@@ -36,11 +47,21 @@ SCRIPT="$REPO_DIR/cowboy"
 # ---- Dependency checks ----
 echo "Checking dependencies..."
 MISSING_DEPS=()
-for cmd in git paru pacman flatpak; do
+for cmd in git pacman; do
     if ! command -v "$cmd" &>/dev/null; then
         MISSING_DEPS+=("$cmd")
     fi
 done
+
+# Optional dependencies
+OPTIONAL_DEPS=()
+command -v paru &>/dev/null || OPTIONAL_DEPS+=("paru (AUR helper)")
+command -v flatpak &>/dev/null || OPTIONAL_DEPS+=("flatpak")
+
+if [ ${#OPTIONAL_DEPS[@]} -gt 0 ]; then
+    echo -e "${YELLOW}⚠️${RESET} Optional dependencies missing: ${OPTIONAL_DEPS[*]}"
+    echo "The script will work, but some features may be limited."
+fi
 
 if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
     echo "❌ Error: Missing required dependencies: ${MISSING_DEPS[*]}"
@@ -53,7 +74,7 @@ echo "✓ All dependencies found"
 if [[ ! -d "$REPO_DIR/.git" ]]; then
     echo "❌ Error: cowboy-update repo not found in $REPO_DIR"
     echo "Please clone it first:"
-    echo "  git clone https://github.com/yourusername/cowboy-update.git $REPO_DIR"
+    echo "  git clone https://github.com/matt12117/cowboy-update.git $REPO_DIR"
     exit 1
 fi
 echo "✓ Repository found at $REPO_DIR"
@@ -105,6 +126,11 @@ fi
 # ---- Create symlink ----
 echo "Creating command symlink..."
 mkdir -p "$BIN_DIR"
+
+if [ ! -L "$BIN_DIR/$BIN_NAME" ]; then
+    echo "❌ Failed to create symlink"
+    exit 1
+fi
 
 # Remove old symlink if it exists
 [ -L "$BIN_DIR/$BIN_NAME" ] && rm "$BIN_DIR/$BIN_NAME"
@@ -202,6 +228,15 @@ if [ -d "$HOME/Desktop" ]; then
         
         echo "✓ Created desktop shortcut"
     fi
+fi
+
+# ---- Verify installation ----
+echo "Verifying installation..."
+if [ -x "$BIN_DIR/$BIN_NAME" ] && [ -f "$DESKTOP_FILE" ]; then
+    echo "✓ Installation verified"
+else
+    echo "❌ Installation verification failed"
+    exit 1
 fi
 
 # ---- Final summary ----
