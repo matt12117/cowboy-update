@@ -147,7 +147,7 @@ cat > "$DESKTOP_FILE" <<EOF
 Name=Cowboy Update
 Comment=Update Arch, AUR, and Flatpak packages
 Exec=$TERMINAL $BIN_DIR/$BIN_NAME
-Icon=system-software-update
+Icon=cowboy-icon
 Terminal=true
 Type=Application
 Categories=System;Settings;PackageManager;
