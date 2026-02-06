@@ -42,5 +42,4 @@ Or find "Cowboy Update" in your application menu!
 ## NOTE
 Cowboy-Update is currently made for CachyOS and cosmic-terminal in raw files. Using install script will detect your systems installed terminals and confirm your preferred terminal.
 
-- sunny
-- sunny
+sunny
