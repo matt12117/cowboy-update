@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# MIT License
+# Copyright (c) 2026 sunny
+# See LICENSE file for full details
 set -e
 # Get version from git tag if available
 if command -v git &>/dev/null && [ -d "$HOME/cowboy-update/.git" ]; then
