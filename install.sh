@@ -127,11 +127,6 @@ fi
 echo "Creating command symlink..."
 mkdir -p "$BIN_DIR"
 
-if [ ! -L "$BIN_DIR/$BIN_NAME" ]; then
-    echo "❌ Failed to create symlink"
-    exit 1
-fi
-
 # Remove old symlink if it exists
 [ -L "$BIN_DIR/$BIN_NAME" ] && rm "$BIN_DIR/$BIN_NAME"
 
