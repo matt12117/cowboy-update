@@ -109,7 +109,7 @@ if [ -d "$REPO_DIR" ]; then
     if [ "$PURGE" = true ]; then
         remove_repo="y"
     else
-        read -p "Remove repository directory? NOT RECOMMENED(y/N): " remove_repo
+        read -p "Remove repository directory?(y/N): " remove_repo
     fi
     
     if [[ "$remove_repo" =~ ^[Yy]$ ]]; then
