@@ -109,7 +109,7 @@ if [ -d "$REPO_DIR" ]; then
     if [ "$PURGE" = true ]; then
         remove_repo="y"
     else
-        read -p "Remove repository directory? (y/N): " remove_repo
+        read -p "Remove repository directory? NOT RECOMMENED(y/N): " remove_repo
     fi
     
     if [[ "$remove_repo" =~ ^[Yy]$ ]]; then
@@ -156,7 +156,7 @@ if [ "$FOUND_PATH_MODS" = true ]; then
     if [ "$PURGE" = true ]; then
         remove_path="y"
     else
-        read -p "Remove PATH modifications from shell configs? (y/N): " remove_path
+        read -p "Remove PATH modifications from shell configs? NOT RECOMMENED (y/N): " remove_path
     fi
     
     if [[ "$remove_path" =~ ^[Yy]$ ]]; then
