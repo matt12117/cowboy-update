@@ -73,14 +73,20 @@ self_update() {
         case "$choice" in
             y|Y)
                 echo -e "\e[32mUpdating Cowboy Update...\e[0m"
-                git pull origin "$BRANCH" --quiet
+                 # Make sure we can pull cleanly
+                git fetch --all --prune --quiet
+                
+                # Stash local changes if any
+                if ! git diff-index --quiet HEAD --; then
+                    echo "Stashing local changes..."
+                    git stash push -m "cowboy-update-autostash-$(date +%F_%H%M%S)"
+                fi
 
-                # Discard any local changes to avoid merge conflicts
-                git reset --hard
+                # Force reset to remote branch to guarantee a clean update
+                git reset --hard "origin/$BRANCH"
                 git clean -fd
 
-                # Pull latest changes
-                git pull origin "$BRANCH" --quiet
+                echo -e "\e[32mUpdate pulled successfully!\e[0m"
                 
                 # Update desktop file if it exists
                 if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
