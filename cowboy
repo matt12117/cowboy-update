@@ -3,7 +3,7 @@
 ORIGINAL_USER=${SUDO_USER:-$USER}
 ORIGINAL_UID=$(id -u "$ORIGINAL_USER")
 USER_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
-#SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$USER_HOME/cowboy-update"
 BRANCH="main"               
 
