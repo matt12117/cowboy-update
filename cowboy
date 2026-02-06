@@ -4,7 +4,7 @@
 # See LICENSE file for full details
 
 # Credits:
-# ASCII art used in this script created by DeXteR/MJP and unknown
+# ASCII art used in this script created by DeXteR/MJP and emojicombos.com
 
 set -Eeuo pipefail
 trap 'echo "Error on line $LINENO. Exiting."; exit 1' ERR
