@@ -1,89 +1,82 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
 
-echo "Installing Cowboy Update Script..."
+echo "Installing Cowboy Update..."
 
-# Check if required tools are installed
-if ! command -v paru &> /dev/null; then
-    echo "Error: paru is not installed. Please install it first."
-    exit 1
-fi
+REPO_DIR="$HOME/cowboy-update"
+BIN_DIR="$HOME/.local/bin"
+BIN_NAME="cowboy"
+SCRIPT="$REPO_DIR/cowboy"
 
-if ! command -v arch-update &> /dev/null; then
-    echo "Error: arch-update is not installed. Please install it first."
-    exit 1
-fi
+# ---- Dependency checks ----
+for cmd in git paru pacman flatpak; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "Error: $cmd is not installed."
+        exit 1
+    fi
+done
 
-if ! command -v flatpak &> /dev/null; then
-    echo "Error: flatpak is not installed. Please install it first."
-    exit 1
-fi
-
-# Detect available terminals
+# ---- Detect terminal ----
 TERMINALS=()
-command -v cosmic-term &> /dev/null && TERMINALS+=("cosmic-term -e")
-command -v konsole &> /dev/null && TERMINALS+=("konsole -e")
-command -v gnome-terminal &> /dev/null && TERMINALS+=("gnome-terminal --")
-command -v alacritty &> /dev/null && TERMINALS+=("alacritty -e")
-command -v kitty &> /dev/null && TERMINALS+=("kitty -e")
-command -v xterm &> /dev/null && TERMINALS+=("xterm -e")
+command -v cosmic-term &>/dev/null && TERMINALS+=("cosmic-term -e")
+command -v konsole &>/dev/null && TERMINALS+=("konsole -e")
+command -v gnome-terminal &>/dev/null && TERMINALS+=("gnome-terminal --")
+command -v alacritty &>/dev/null && TERMINALS+=("alacritty -e")
+command -v kitty &>/dev/null && TERMINALS+=("kitty -e")
+command -v xterm &>/dev/null && TERMINALS+=("xterm -e")
 
 if [ ${#TERMINALS[@]} -eq 0 ]; then
     echo "Error: No supported terminal found."
     exit 1
 elif [ ${#TERMINALS[@]} -eq 1 ]; then
     TERMINAL="${TERMINALS[0]}"
-    echo "Using terminal: $TERMINAL"
 else
     echo "Multiple terminals detected:"
     for i in "${!TERMINALS[@]}"; do
         echo "$((i+1)). ${TERMINALS[$i]}"
     done
-    read -p "Which terminal do you want to use? (1-${#TERMINALS[@]}): " choice
+    read -p "Choose terminal (1-${#TERMINALS[@]}): " choice
     TERMINAL="${TERMINALS[$((choice-1))]}"
-    echo "Using terminal: $TERMINAL"
 fi
 
+# ---- Ensure repo exists ----
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+    echo "Error: cowboy-update repo not found in $REPO_DIR"
+    echo "Please clone it first:"
+    echo "  git clone <repo-url> $REPO_DIR"
+    exit 1
+fi
 
-# Copy script to /usr/local/bin
-sudo cp cowboy /usr/local/bin/cowboy
-sudo chmod +x /usr/local/bin/cowboy
+chmod +x "$SCRIPT"
 
-# Copy icon to system pixmaps
-sudo cp cowboy-icon.png /usr/share/pixmaps/cowboy-icon.png
+# ---- Create symlink (THIS IS THE FIX) ----
+mkdir -p "$BIN_DIR"
+ln -sf "$SCRIPT" "$BIN_DIR/$BIN_NAME"
 
-# Create desktop file with detected terminal
-cat > cowboy.desktop << EOF
+# ---- Desktop entry ----
+DESKTOP_FILE="$HOME/.local/share/applications/cowboy.desktop"
+mkdir -p "$(dirname "$DESKTOP_FILE")"
+
+cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Cowboy Update
 Comment=Update Arch, AUR, and Flatpak
-Exec=$TERMINAL /usr/local/bin/cowboy
+Exec=$TERMINAL $BIN_NAME
 Icon=cowboy-icon
 Terminal=true
 Type=Application
 Categories=System;
 EOF
 
-# Copy desktop file to applications
-mkdir -p ~/.local/share/applications
-cp cowboy.desktop ~/.local/share/applications/
-chmod +x ~/.local/share/applications/cowboy.desktop
-update-desktop-database ~/.local/share/applications/
+update-desktop-database "$HOME/.local/share/applications" &>/dev/null || true
 
-# Ask the user if they want a desktop shortcut
-read -p "Do you want to create a Cowboy Update shortcut on your desktop? (y/n): " choice
+# ---- Desktop shortcut (optional) ----
+read -p "Create desktop shortcut? (y/n): " choice
 if [[ "$choice" =~ ^[Yy]$ ]]; then
-    DESKTOP_FILE=~/Desktop/cowboy.desktop
-    cp ~/.local/share/applications/cowboy.desktop "$DESKTOP_FILE"
-    chmod +x "$DESKTOP_FILE"
-    
-    # For GNOME and some DEs, allow launching
-    if command -v gio &> /dev/null; then
-        gio set "$DESKTOP_FILE" "metadata::trusted" yes
-    fi
-    echo "✅ Desktop shortcut created!"
-else
-    echo "Desktop shortcut skipped."
+    cp "$DESKTOP_FILE" "$HOME/Desktop/cowboy.desktop"
+    chmod +x "$HOME/Desktop/cowboy.desktop"
+    command -v gio &>/dev/null && gio set "$HOME/Desktop/cowboy.desktop" metadata::trusted yes
 fi
 
-echo "Installation complete!"
-echo "You can now run 'cowboy' from the terminal or find it in your application menu/desktop"
+echo "✅ Installation complete"
+echo "Run with: cowboy"
