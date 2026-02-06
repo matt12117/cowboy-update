@@ -7,23 +7,15 @@
 # ASCII art used in this script created by DeXteR/MJP and emojicombos.com
 
 set -Eeuo pipefail
-trap 'echo "Error on line $LINENO. Exiting."; exit 1' ERR
 
-# FIX: Define SCRIPT_DIR first, before anything else
+#Variables
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
-
 ORIGINAL_USER=${SUDO_USER:-$USER}
 ORIGINAL_UID=$(id -u "$ORIGINAL_USER")
 USER_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
 APP_DIR="$SCRIPT_DIR"
 BRANCH="main"               
 LOG_FILE="$USER_HOME/cowboy-update/cowboy-update.log"
-
-# Relaunch as root if not already
-if [[ $EUID -ne 0 ]]; then
-    echo "Cowboy Update requires sudo."
-    exec sudo "$0" "$@"
-fi
 
 # Colors (only if output is a TTY)
 if [ -t 1 ]; then
@@ -40,6 +32,36 @@ else
     RED=""; GREEN=""; YELLOW=""; BLUE=""
     MAGENTA=""; CYAN=""; BOLD=""; DIM=""; RESET=""
 fi
+
+# Check last update (BEFORE sudo elevation)
+if [ -f "$LOG_FILE" ]; then
+    LAST_UPDATE=$(tail -1 "$LOG_FILE" | cut -d'|' -f1 | xargs)
+    DAYS_SINCE=$(( ( $(date +%s) - $(date -d "$LAST_UPDATE" +%s) ) / 86400 ))
+    if [ $DAYS_SINCE -gt 7 ]; then
+        echo -e "${YELLOW}⚠️  It's been $DAYS_SINCE days since your last update!${RESET}"
+        echo ""
+    fi
+fi
+
+# Relaunch as root if not already
+if [[ $EUID -ne 0 ]]; then
+    echo "Cowboy Update requires sudo."
+    exec sudo "$0" "$@"
+fi
+
+# Keep sudo alive in background
+keep_sudo_alive() {
+    while true; do
+        sudo -v
+        sleep 50
+    done
+}
+# Start background process to keep sudo alive
+keep_sudo_alive &
+SUDO_KEEPER_PID=$!
+# Kill the sudo keeper when script exits
+trap 'kill $SUDO_KEEPER_PID 2>/dev/null; echo "Error on line $LINENO. Exiting."; exit 1' ERR
+trap 'kill $SUDO_KEEPER_PID 2>/dev/null' EXIT
 
 notify_user() {
     local title="$1"
@@ -180,7 +202,13 @@ cat <<'EOF'
                                :/_________|
 EOF
 read -p "Press Enter to begin..."
-
+if [ -f "$LOG_FILE" ]; then
+    LAST_UPDATE=$(tail -1 "$LOG_FILE" | cut -d'|' -f1 | xargs)
+    DAYS_SINCE=$(( ( $(date +%s) - $(date -d "$LAST_UPDATE" +%s) ) / 86400 ))
+    if [ $DAYS_SINCE -gt 7 ]; then
+        echo -e "${YELLOW}⚠️  It's been $DAYS_SINCE days since your last update!${RESET}"
+    fi
+fi
 self_update
 
 # Track stats
@@ -277,7 +305,7 @@ echo "======================================="
 echo -e "${GREEN}Updating AUR Packages...${RESET}"
 echo "======================================="
 set +e
-paru -Sua
+sudo -u "$ORIGINAL_USER" paru -Sua
 PARU_EXIT=$?
 set -e
 
@@ -291,21 +319,42 @@ echo
 echo "======================================="
 echo -e "${GREEN}Updating Flatpaks...${RESET}"
 echo "======================================="
+#count updates
+FLATPAKS_UPDATED=0
+
+# Update system-level flatpaks (as root)
+echo "Updating system flatpaks..."
 set +e
-flatpak update
-FLATPAK_EXIT=$?
+flatpak update --system -y
+FLATPAK_SYSTEM_EXIT=$?
 set -e
 
-if [ $FLATPAK_EXIT -ne 0 ]; then
-    echo -e "${YELLOW}flatpak failed!${RESET}"
+# Update user-level flatpaks (as original user)
+echo "Updating user flatpaks..."
+set +e
+sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak update --user -y
+FLATPAK_USER_EXIT=$?
+set -e
+
+# Check if either failed
+if [ $FLATPAK_SYSTEM_EXIT -ne 0 ] || [ $FLATPAK_USER_EXIT -ne 0 ]; then
+    echo -e "${YELLOW}flatpak update failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "flatpak failed" cowboy-icon
+fi
+
+# Capture flatpak update outputs:
+FLATPAK_OUTPUT=$(flatpak update --system -y 2>&1)
+if echo "$FLATPAK_OUTPUT" | grep -q "Updated:"; then
+    FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + 1))
 fi
 
 echo
 echo "======================================="
 echo -e "${YELLOW}Cleaning...${RESET}"
 echo "======================================="
+# Show disk space saved - var before
+BEFORE=$(df / | tail -1 | awk '{print $4}')
 
 # Check for orphaned packages
 echo
@@ -352,7 +401,10 @@ fi
 if command -v flatpak &> /dev/null; then
     echo "Cleaning Flatpak cache..."
     echo
-    flatpak uninstall --unused -y > /dev/null 2>&1
+    # Clean system flatpaks
+    flatpak uninstall --system --unused -y > /dev/null 2>&1
+    # Clean user flatpaks
+    sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak uninstall --user --unused -y > /dev/null 2>&1
 fi
 
 # Check for .pacnew and .pacsave files
@@ -377,10 +429,7 @@ if command -v needrestart &> /dev/null; then
     needrestart -l
 fi
 
-
-# Show disk space saved
-BEFORE=$(df / | tail -1 | awk '{print $4}')
-# ... do updates and cleaning ...
+# ... do updates and cleaning results...
 AFTER=$(df / | tail -1 | awk '{print $4}')
 SAVED=$((AFTER - BEFORE))
 echo
@@ -414,7 +463,7 @@ reboot_prompt
 echo "+------------------------------------+"
 echo -e "|${GREEN} SUCCESS! YOU CARRIED THAT WEIGHT!${RESET}  |"
 echo "+------------------------------------+"
-    echo "⣿⣿⣿⣿⣿⡿⠛⠋⠙⠉⠋⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠿⠿⢿⣿⣿⣿⣿
+    echo -e "${BOLD}⣿⣿⣿⣿⣿⡿⠛⠋⠙⠉⠋⠛⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠿⠿⠿⢿⣿⣿⣿⣿
 ⣿⣿⣿⣿⣥⣴⣶⣿⣿⣿⣿⣷⣦⡈⠙⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣁⣤⣤⣶⣶⣤⣤⣈⣻⣿⣿
 ⣿⣿⣿⣿⡿⠿⠛⠛⠻⠿⣿⣿⣿⣿⣧⣈⣿⣿⣿⣿⣿⣿⠏⣡⣾⣿⣿⣿⣿⡿⠿⢿⣿⣿⣿⣿
 ⣿⣿⣿⡏⠀⡀⠂⠄⡁⠐⢘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⠉⠀⡀⠄⠠⠀⠙⣿⣿
@@ -428,13 +477,14 @@ echo "+------------------------------------+"
 ⣿⣿⣿⣷⣌⠻⣿⣿⣿⠀⣿⣿⣿⣿⣿⠀⣿⣿⣿⣿⡇⢸⣿⣿⣿⣿⡇⢸⣿⣿⡿⠃⣰⣿⣿⣿
 ⣿⣿⣿⣿⣿⣧⡈⠻⡏⠠⣿⣿⣿⣿⡏⠐⣿⣿⣿⣿⡇⢸⣿⣿⣿⣿⡇⢸⡿⠛⣡⣾⣿⣿⣿⣿
 ⣿⣿⣿⣿⣿⣿⣿⣷⣄⡐⠻⢿⣿⣿⡇⢨⣿⣿⣿⣿⡇⢸⣿⣿⣿⡿⠃⣈⣤⣾⣿⣿⣿⣿⣿⣿
-⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣬⣉⣃⠘⠛⠛⠛⠛⠃⠘⣛⣉⣥⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿"
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣬⣉⣃⠘⠛⠛⠛⠛⠃⠘⣛⣉⣥⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿${RESET}"
 
 #Summary
-echo "+------------------------------------+"
+echo -e "${CYAN}+------------------------------------+"
 echo "|         UPDATE SUMMARY             |"
-echo "+------------------------------------+"
+echo -e "+------------------------------------+${RESET}"
 printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
+printf "| %-34s |\n" "Flatpaks updated: $FLATPAKS_UPDATED"
 printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
