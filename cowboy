@@ -226,7 +226,9 @@ if ! flatpak update; then
     notify_user "Update Failed" "flatpak failed" cowboy-icon
 fi
 
-
+echo "======================================="
+echo -e "${CYAN}Cleaning...${RESET}"
+echo "======================================="
 # Check for orphaned packages
 echo
 echo "Checking for orphaned packages..."
@@ -247,8 +249,6 @@ else
     echo
     ORPHANS_REMOVED=0
 fi
-
-
 
 # Clean package cache (keep last 2 versions)
 echo "Cleaning package cache..."
