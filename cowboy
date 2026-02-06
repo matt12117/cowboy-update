@@ -38,7 +38,7 @@ notify_user() {
         notify-send -a "Cowboy Update" -i "$icon" "$title" "$message"
 }
 
-echo -e "${RED}
+echo -e "${CYAN}
 ╔═══════════════════════════════════╗
 ║                                   ║
 ║                                   ║
@@ -242,6 +242,11 @@ if ! flatpak update; then
     print_failure_art
     notify_user "Update Failed" "flatpak failed" cowboy-icon
 fi
+
+echo
+echo "======================================="
+echo -e "${YELLOW}Cleaning...${RESET}"
+echo "======================================="
 
 # Check for orphaned packages
 echo
