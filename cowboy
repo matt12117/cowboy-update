@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 trap 'echo "Error on line $LINENO. Exiting."; exit 1' ERR
 
+# FIX: Define SCRIPT_DIR first, before anything else
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 ORIGINAL_USER=${SUDO_USER:-$USER}
@@ -45,7 +46,7 @@ echo -e "${CYAN}
 ╔═══════════════════════════════════╗
 ║                                   ║
 ║                                   ║
-║      COWBOY_UPDATE SCRIPT         ║
+║      COWBOY-UPDATE SCRIPT         ║
 ║                                   ║
 ║                                   ║
 ╔═══════════════════════════════════╝⠀⠀ ⠀⠀
@@ -191,8 +192,9 @@ echo ""
 read -p "Press Enter to continue with updates..."
 echo
 
-# Track if kernel was updated during this run
+# Track if kernel or GPU drivers were updated during this run
 KERNEL_UPDATED=false
+GPU_UPDATED=false
 
 warn_large_update
 
@@ -223,6 +225,11 @@ fi
 # Check for any kernel package update (CachyOS or standard Arch)
 if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|linux-hardened'; then
     KERNEL_UPDATED=true
+fi
+
+# Check for GPU driver updates (NVIDIA, AMD, Intel)
+if echo "$PACMAN_OUTPUT" | grep -qE 'nvidia|nvidia-dkms|nvidia-lts|mesa|xf86-video-amdgpu|xf86-video-intel|vulkan-radeon|vulkan-intel'; then
+    GPU_UPDATED=true
 fi
 
 if [ $PACMAN_EXIT -ne 0 ] || echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
@@ -346,11 +353,25 @@ echo
 echo "Freed up: $((SAVED / 1024)) MB"
 
 # Check if reboot needed
-if [ "$KERNEL_UPDATED" = true ]; then
+if [ "$KERNEL_UPDATED" = true ] || [ "$GPU_UPDATED" = true ]; then
     echo
-    echo "⚠️  REBOOT REQUIRED - Kernel was updated! ⚠️"
+    echo "⚠️  ========================================== ⚠️"
+    echo "⚠️           REBOOT RECOMMENDED              ⚠️"
+    echo "⚠️  ========================================== ⚠️"
+    
+    if [ "$KERNEL_UPDATED" = true ] && [ "$GPU_UPDATED" = true ]; then
+        echo "   Kernel AND GPU drivers were updated!"
+        notify_user "Reboot Recommended" "Kernel and GPU drivers updated" dialog-warning
+    elif [ "$KERNEL_UPDATED" = true ]; then
+        echo "   Kernel was updated!"
+        notify_user "Reboot Recommended" "Kernel was updated" dialog-warning
+    else
+        echo "   GPU drivers were updated!"
+        notify_user "Reboot Recommended" "GPU drivers updated" dialog-warning
+    fi
+    
+    echo "⚠️  ========================================== ⚠️"
     echo
-    notify_user "Kernel was updated during this session" "Reboot Required" cowboy-icon
 fi
 
 echo "+------------------------------------+"
@@ -380,6 +401,7 @@ printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
 printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
+printf "| %-34s |\n" "GPU drivers updated: $([ "$GPU_UPDATED" = true ] && echo "YES" || echo "NO")"
 echo "+------------------------------------+"
 
 notify_user "System Updated" "Yeehaw"
