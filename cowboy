@@ -76,21 +76,27 @@ self_update() {
                  # Make sure we can pull cleanly
                 git fetch --all --prune --quiet
                 
-                # Stash local changes if any
+                # Quietly stash local changes if any
+                STASHED=false
                 if ! git diff-index --quiet HEAD --; then
-                    echo "Stashing local changes..."
-                    git stash push --quiet -m "cowboy-update-autostash-$(date +%F_%H%M%S)"
+                    git stash push -q -u -m "cowboy-update-autostash-$(date +%F_%H%M%S)" >/dev/null 2>&1
+                    STASHED=true
                 fi
 
-                # Force reset to remote branch to guarantee a clean update
-                git reset --hard "origin/$BRANCH"
-                git clean -fd
+                # Force reset to remote branch to guarantee clean update
+                git reset --hard "origin/$BRANCH" >/dev/null 2>&1
+                git clean -fd >/dev/null 2>&1
+
+                # Reapply stash if needed
+                if [ "$STASHED" = true ]; then
+                    git stash pop -q >/dev/null 2>&1
+                fi
 
                 echo -e "\e[32mUpdate pulled successfully!\e[0m"
-                
+
                 # Update desktop file if it exists
                 if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
-                    cp "$APP_DIR/cowboy_update.desktop" "$USER_HOME/.local/share/applications/" 2>/dev/null
+                    cp "$APP_DIR/cowboy_update.desktop" "$HOME/.local/share/applications/" 2>/dev/null
                 fi
 
                 echo -e "\e[32mUpdate complete! Relaunching...\e[0m"
@@ -104,6 +110,7 @@ self_update() {
         echo -e "${GREEN}Cowboy-update is on latest version.${RESET}"
     fi
 }
+
 
 self_update
 warn_large_update() {
