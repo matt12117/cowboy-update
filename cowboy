@@ -75,6 +75,13 @@ self_update() {
                 echo -e "\e[32mUpdating Cowboy Update...\e[0m"
                 git pull origin "$BRANCH" --quiet
 
+                # Discard any local changes to avoid merge conflicts
+                git reset --hard
+                git clean -fd
+
+                # Pull latest changes
+                git pull origin "$BRANCH" --quiet
+                
                 # Update desktop file if it exists
                 if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
                     cp "$APP_DIR/cowboy_update.desktop" "$USER_HOME/.local/share/applications/" 2>/dev/null
