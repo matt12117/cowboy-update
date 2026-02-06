@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
 set -e
+# Get version from git tag if available
+if command -v git &>/dev/null && [ -d "$HOME/cowboy-update/.git" ]; then
+    cd "$HOME/cowboy-update"
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+    cd - > /dev/null
+else
+    VERSION="unknown"
+fi
 
-echo "Installing Cowboy Update..."
+echo "⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⣤⣤⣭⣍⣩⣭⣤⣬⠹⣿⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⡟⣸⣿⣿⣿⣿⣿⣿⣿⣿⡆⢻⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⢁⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠘⣿⣿⣿⣿⣿⣿⣿
+⣿⠟⢋⣉⣉⣉⣉⣉⠘⠛⠠⠀⠀⠤⠤⠠⠀⠉⠛⠃⢉⣉⣉⣉⢉⠛⠿
+⡇⠀⠀⠀⠀⠉⠉⠙⠛⠛⠒⠒⠶⠒⠒⠖⠖⠘⠛⠉⠈⠉⠉⠀⠀⠀⠀
+⣿⣄⠀⠀⠀⠀⠀⡦⠀⣾⣅⣀⡈⢷⡆⢀⢐⣹⡦⠀⢶⠀⠀⠀⠀⠀⣰
+⣿⣿⣧⣄⠀⠀⢀⠃⠀⠛⢛⣋⣠⣴⣄⠘⠛⠿⠇⠀⠂⠀⠀⠀⣠⣾⣿
+⣿⣿⣿⡿⢋⠤⠈⠀⠨⢭⣭⣭⣽⣿⡏⠀⣠⡶⠛⠁⢀⡠⣴⣿⣿⣿⣿
+⣿⣿⡟⡰⠣⢊⢠⠀⡑⢶⣶⣶⣼⣿⠁⢰⣿⡶⠃⡀⢨⣿⣿⣿⣿⣿⣿
+⣿⣿⣇⣡⣴⡿⠀⡆⠈⢲⣬⣙⣻⣿⡆⢸⡿⢁⠌⣴⢸⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⡇⠖⣠⡐⣄⢻⡙⣿⣿⣷⢸⣷⡟⣼⠇⣾⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣷⣿⣿⣷⡙⢾⣧⠘⣿⣿⢸⣿⡴⢃⣾⣿⣿⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⠻⡆⢹⣿⡿⢋⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿"
+echo -e "\e[1mCowboy-Update|$VERSION by sunny\e[0m"
+echo "Installing Cowboy-Update..."
 
 REPO_DIR="$HOME/cowboy-update"
 BIN_DIR="$HOME/.local/bin"
@@ -117,7 +139,7 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo "    source $SHELL_RC"
     echo ""
     
-    read -p "Add to $SHELL_RC automatically? (y/n): " add_path
+    read -p "Add to $SHELL_RC automatically? This will allow you to run 'cowboy' in terminal. (y/n): " add_path
     if [[ "$add_path" =~ ^[Yy]$ ]]; then
         SHELL_RC_EXPANDED="${SHELL_RC/#\~/$HOME}"
         
@@ -182,7 +204,7 @@ fi
 # ---- Final summary ----
 echo ""
 echo "════════════════════════════════════════"
-echo "✅ Installation complete!"
+echo "  Installation complete!"
 echo "════════════════════════════════════════"
 echo ""
 echo "Usage:"
