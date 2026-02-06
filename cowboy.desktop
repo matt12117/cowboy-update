@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Cowboy Update
-Comment=Update Arch, AUR, and Flatpak
-Exec=$TERMINAL $BIN_NAME
-Icon=cowboy-icon
-Terminal=true
-Type=Application
-Categories=System;
