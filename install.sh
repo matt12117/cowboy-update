@@ -87,6 +87,13 @@ mkdir -p "$BIN_DIR"
 ln -sf "$SCRIPT" "$BIN_DIR/$BIN_NAME"
 echo "✓ Created symlink: $BIN_DIR/$BIN_NAME -> $SCRIPT"
 
+# ---- Create uninstall symlink ----
+if [ -f "$REPO_DIR/uninstall.sh" ]; then
+    chmod +x "$REPO_DIR/uninstall.sh"
+    ln -sf "$REPO_DIR/uninstall.sh" "$BIN_DIR/cowboy-uninstall"
+    echo "✓ Created uninstall command: cowboy-uninstall"
+fi
+
 # ---- Check PATH ----
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo ""
