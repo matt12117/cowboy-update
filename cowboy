@@ -79,7 +79,7 @@ self_update() {
                 # Stash local changes if any
                 if ! git diff-index --quiet HEAD --; then
                     echo "Stashing local changes..."
-                    git stash push -m "cowboy-update-autostash-$(date +%F_%H%M%S)" >/dev/null 2>&1
+                    git stash push --quiet -m "cowboy-update-autostash-$(date +%F_%H%M%S)"
                 fi
 
                 # Force reset to remote branch to guarantee a clean update
