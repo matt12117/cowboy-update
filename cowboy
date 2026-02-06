@@ -58,11 +58,27 @@ self_update() {
         return
     fi
 
-    # Go to app directory
+    # Make sure app dir is a git repo
+    if [ ! -d "$APP_DIR/.git" ]; then
+        echo "Error: $APP_DIR is not a git repository!"
+        return
+    fi
+
     cd "$APP_DIR" || return
 
     # Fetch latest changes
     git fetch origin "$BRANCH" --quiet
+
+    # Detect if HEAD is detached
+    DETACHED=$(git symbolic-ref --quiet --short HEAD || echo "DETACHED")
+
+    if [ "$DETACHED" = "DETACHED" ]; then
+        echo -e "\e[33mDetached HEAD detected. Resetting to $BRANCH\e[0m"
+        git checkout -B "$BRANCH" "origin/$BRANCH"
+    else
+        # Make sure local branch exists and tracks remote
+        git checkout "$BRANCH" >/dev/null 2>&1 || git checkout -b "$BRANCH" "origin/$BRANCH"
+    fi
 
     LOCAL_HASH=$(git rev-parse HEAD)
     REMOTE_HASH=$(git rev-parse origin/"$BRANCH")
@@ -73,26 +89,24 @@ self_update() {
         case "$choice" in
             y|Y)
                 echo -e "\e[32mUpdating Cowboy Update...\e[0m"
-                 # Make sure we can pull cleanly
-                git fetch --all --prune --quiet
-                
-                # Quietly stash local changes if any
+
+                # Stash local changes if any
                 STASHED=false
                 if ! git diff-index --quiet HEAD --; then
-                    git stash push -q -u -m "cowboy-update-autostash-$(date +%F_%H%M%S)" >/dev/null 2>&1
+                    git stash push -q -u -m "cowboy-update-autostash-$(date +%F_%H%M%S)"
                     STASHED=true
                 fi
 
-                # Force reset to remote branch to guarantee clean update
-                git reset --hard "origin/$BRANCH" >/dev/null 2>&1
-                git clean -fd >/dev/null 2>&1
+                # Force reset to remote branch
+                git reset --hard "origin/$BRANCH"
+                git clean -fd
 
                 # Reapply stash if needed
                 if [ "$STASHED" = true ]; then
-                    git stash pop -q >/dev/null 2>&1
+                    git stash pop -q
                 fi
 
-                echo -e "\e[32mUpdate pulled successfully!\e[0m"
+                echo -e "\e[32mUpdate pulled successfully! New commit: $(git rev-parse HEAD)\e[0m"
 
                 # Update desktop file if it exists
                 if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
@@ -110,6 +124,7 @@ self_update() {
         echo -e "${GREEN}Cowboy-update is on latest version.${RESET}"
     fi
 }
+
 
 
 self_update
