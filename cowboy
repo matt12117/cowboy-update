@@ -16,6 +16,7 @@ USER_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
 APP_DIR="$SCRIPT_DIR"
 BRANCH="main"               
 LOG_FILE="$USER_HOME/cowboy-update/cowboy-update.log"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
 # Colors (only if output is a TTY)
 if [ -t 1 ]; then
@@ -174,7 +175,7 @@ reboot_prompt() {
 }
 
 log_summary() {
-    echo "$(date '+%F %T') | Packages: $PACKAGES_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
+    echo "$(date '+%F %T') | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
 }
 
 echo -e "${CYAN}
@@ -202,17 +203,13 @@ cat <<'EOF'
                                :/_________|
 EOF
 read -p "Press Enter to begin..."
-if [ -f "$LOG_FILE" ]; then
-    LAST_UPDATE=$(tail -1 "$LOG_FILE" | cut -d'|' -f1 | xargs)
-    DAYS_SINCE=$(( ( $(date +%s) - $(date -d "$LAST_UPDATE" +%s) ) / 86400 ))
-    if [ $DAYS_SINCE -gt 7 ]; then
-        echo -e "${YELLOW}⚠️  It's been $DAYS_SINCE days since your last update!${RESET}"
-    fi
-fi
+
 self_update
 
 # Track stats
 PACKAGES_UPDATED=0
+AUR_UPDATED=0
+FLATPAKS_UPDATED=0
 ORPHANS_REMOVED=0
 CACHE_CLEANED="0 MB"
 
@@ -305,9 +302,16 @@ echo "======================================="
 echo -e "${GREEN}Updating AUR Packages...${RESET}"
 echo "======================================="
 set +e
-sudo -u "$ORIGINAL_USER" paru -Sua
+AUR_OUTPUT=$(sudo -u "$ORIGINAL_USER" paru -Sua 2>&1 | tee /dev/tty)
 PARU_EXIT=$?
 set -e
+
+# Count AUR packages updated
+if echo "$AUR_OUTPUT" | grep -q "upgrading"; then
+    AUR_UPDATED=$(echo "$AUR_OUTPUT" | grep -c "upgrading")
+else
+    AUR_UPDATED=0
+fi
 
 if [ $PARU_EXIT -ne 0 ]; then
     echo -e "${YELLOW}paru failed!${RESET}"
@@ -319,34 +323,30 @@ echo
 echo "======================================="
 echo -e "${GREEN}Updating Flatpaks...${RESET}"
 echo "======================================="
-#count updates
-FLATPAKS_UPDATED=0
 
 # Update system-level flatpaks (as root)
 echo "Updating system flatpaks..."
 set +e
-flatpak update --system -y
+FLATPAK_SYSTEM_OUTPUT=$(flatpak update --system -y 2>&1 | tee /dev/tty)
 FLATPAK_SYSTEM_EXIT=$?
 set -e
 
 # Update user-level flatpaks (as original user)
 echo "Updating user flatpaks..."
 set +e
-sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak update --user -y
+FLATPAK_USER_OUTPUT=$(sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak update --user -y 2>&1 | tee /dev/tty)
 FLATPAK_USER_EXIT=$?
 set -e
+
+# Count updates from both outputs
+FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + $(echo "$FLATPAK_SYSTEM_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")))
+FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + $(echo "$FLATPAK_USER_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")))
 
 # Check if either failed
 if [ $FLATPAK_SYSTEM_EXIT -ne 0 ] || [ $FLATPAK_USER_EXIT -ne 0 ]; then
     echo -e "${YELLOW}flatpak update failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "flatpak failed" cowboy-icon
-fi
-
-# Capture flatpak update outputs:
-FLATPAK_OUTPUT=$(flatpak update --system -y 2>&1)
-if echo "$FLATPAK_OUTPUT" | grep -q "Updated:"; then
-    FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + 1))
 fi
 
 echo
@@ -484,6 +484,7 @@ echo -e "${CYAN}+------------------------------------+"
 echo "|         UPDATE SUMMARY             |"
 echo -e "+------------------------------------+${RESET}"
 printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
+printf "| %-34s |\n" "AUR packages updated: $AUR_UPDATED"
 printf "| %-34s |\n" "Flatpaks updated: $FLATPAKS_UPDATED"
 printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
