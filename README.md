@@ -42,13 +42,5 @@ Or find "Cowboy Update" in your application menu!
 ## NOTE
 Cowboy-Update is currently made for CachyOS and cosmic-terminal in raw files. Using install script will detect your systems installed terminals and confirm your preferred terminal.
 
-
-## Alternative methods
-If you do not want to run install script and would like replicate/edit code yourself:<br>
-dl/copy files (excluding install.sh) for Cowboy and .desktop (rename and delete .desktop extension so it is txt format) <br>
-Edit .desktop in txt to point to shell script and add ICON location.(LOCATIONS IN README) Add the .desktop extension back to the file<br>
-Give Cowboy .sh and .desktop executable permissions.<br>
-Place Cowboy shell script in correct location<br>
-Place .desktop in correct location.<br>
-Copy executable for your placement.<br>
-Launch from executable or run cowboy in your terminal<br>
+- sunny
+- sunny
