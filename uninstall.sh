@@ -3,6 +3,14 @@
 # Copyright (c) 2026 sunny
 # See LICENSE file for full details
 
+# Check for --purge flag
+PURGE=false
+if [[ "$1" == "--purge" ]]; then
+    PURGE=true
+    echo -e "\e[33m⚠️  Running in PURGE mode - will remove EVERYTHING\e[0m"
+    echo ""
+fi
+
 echo "Uninstalling Cowboy Update..."
 echo ""
 
@@ -25,15 +33,23 @@ NOT_FOUND=()
 # ---- Confirm uninstall ----
 echo -e "${YELLOW}This will remove:${RESET}"
 echo "  • Command symlink: $BIN_DIR/$BIN_NAME"
+echo "  • Uninstall command: $BIN_DIR/cowboy-uninstall"
 echo "  • Desktop entry: $DESKTOP_FILE"
 [ -f "$DESKTOP_SHORTCUT" ] && echo "  • Desktop shortcut: $DESKTOP_SHORTCUT"
 echo ""
-echo -e "${YELLOW}This will NOT remove:${RESET}"
+echo -e "${YELLOW}This will NOT remove (unless using --purge):${RESET}"
 echo "  • Repository directory: $REPO_DIR"
 echo "  • PATH modifications in shell config files"
 echo ""
 
-read -p "Continue with uninstall? (y/N): " confirm
+if [ "$PURGE" = true ]; then
+    echo -e "${RED}PURGE MODE: Repository and PATH modifications WILL be removed!${RESET}"
+    echo ""
+    read -p "Are you SURE you want to completely remove Cowboy Update? (y/N): " confirm
+else
+    read -p "Continue with uninstall? (y/N): " confirm
+fi
+
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo "Uninstall canceled."
     exit 0
@@ -49,6 +65,15 @@ if [ -L "$BIN_DIR/$BIN_NAME" ] || [ -f "$BIN_DIR/$BIN_NAME" ]; then
 else
     NOT_FOUND+=("Command symlink")
     echo "  Command symlink not found (already removed?)"
+fi
+
+# ---- Remove uninstall command symlink ----
+if [ -L "$BIN_DIR/cowboy-uninstall" ] || [ -f "$BIN_DIR/cowboy-uninstall" ]; then
+    rm -f "$BIN_DIR/cowboy-uninstall"
+    REMOVED+=("Uninstall command")
+    echo -e "${GREEN}✓${RESET} Removed uninstall command"
+else
+    echo "  Uninstall command not found (skipping)"
 fi
 
 # ---- Remove desktop entry ----
@@ -80,7 +105,13 @@ fi
 echo ""
 if [ -d "$REPO_DIR" ]; then
     echo -e "${YELLOW}Repository directory found:${RESET} $REPO_DIR"
-    read -p "Remove repository directory? (y/N): " remove_repo
+    
+    if [ "$PURGE" = true ]; then
+        remove_repo="y"
+    else
+        read -p "Remove repository directory? (y/N): " remove_repo
+    fi
+    
     if [[ "$remove_repo" =~ ^[Yy]$ ]]; then
         rm -rf "$REPO_DIR"
         REMOVED+=("Repository directory")
@@ -102,6 +133,7 @@ SHELL_CONFIGS=(
     "$HOME/.bash_profile"
     "$HOME/.zshrc"
     "$HOME/.profile"
+    "$HOME/.config/fish/config.fish"
 )
 
 FOUND_PATH_MODS=false
@@ -120,7 +152,13 @@ if [ "$FOUND_PATH_MODS" = true ]; then
     echo -e "${YELLOW}Note:${RESET} PATH modifications were left in place because other apps"
     echo "may depend on ~/.local/bin being in your PATH."
     echo ""
-    read -p "Remove PATH modifications from shell configs? (y/N): " remove_path
+    
+    if [ "$PURGE" = true ]; then
+        remove_path="y"
+    else
+        read -p "Remove PATH modifications from shell configs? (y/N): " remove_path
+    fi
+    
     if [[ "$remove_path" =~ ^[Yy]$ ]]; then
         for config in "${SHELL_CONFIGS[@]}"; do
             if [ -f "$config" ]; then
@@ -136,7 +174,7 @@ if [ "$FOUND_PATH_MODS" = true ]; then
         done
         echo ""
         echo -e "${YELLOW}Reload your shell or run:${RESET}"
-        echo "  source ~/.bashrc  # or ~/.zshrc"
+        echo "  source ~/.bashrc  # or ~/.zshrc or ~/.config/fish/config.fish"
     fi
 else
     echo "  No PATH modifications found"
@@ -163,3 +201,8 @@ fi
 echo ""
 echo "Thank you for using Cowboy Update! 🤠"
 echo ""
+if [ "$PURGE" = false ]; then
+    echo "💡 Tip: Use 'cowboy-uninstall --purge' to remove everything including"
+    echo "   the repository and PATH modifications."
+    echo ""
+fi
