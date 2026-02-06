@@ -1,9 +1,10 @@
 #!/bin/bash
-
-
 set -Eeuo pipefail
 trap 'echo "Error on line $LINENO. Exiting."; exit 1' ERR
+
+# FIX: Define SCRIPT_DIR first, before anything else
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
 ORIGINAL_USER=${SUDO_USER:-$USER}
 ORIGINAL_UID=$(id -u "$ORIGINAL_USER")
 USER_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
@@ -58,10 +59,8 @@ self_update() {
         echo "git is required for self-update, skipping..."
         return
     fi
-
-    # Get the actual directory where this script lives
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
     
+    # SCRIPT_DIR is already defined at the top of the script
     if [ ! -d "$SCRIPT_DIR/.git" ]; then
         echo "Error: $SCRIPT_DIR is not a git repository!"
         return
@@ -86,6 +85,9 @@ self_update() {
     LOCAL_HASH=$(git rev-parse HEAD)
     REMOTE_HASH=$(git rev-parse origin/"$BRANCH")
 
+    echo "Local:  $LOCAL_HASH"
+    echo "Remote: $REMOTE_HASH"
+
     if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
         echo -e "\e[33mA new update for Cowboy Update is available!\e[0m"
         read -rp "Do you want to update now? (y/N): " choice
@@ -106,48 +108,46 @@ self_update() {
 
                 # Reapply stash if needed
                 if [ "$STASHED" = true ]; then
-                    git stash pop -q
+                    git stash pop -q 2>/dev/null || echo "Could not reapply stashed changes"
                 fi
 
                 echo -e "\e[32mUpdate pulled successfully! New commit: $(git rev-parse HEAD)\e[0m"
 
-                # Update desktop file if it exists
-                if [ -f "$APP_DIR/cowboy_update.desktop" ]; then
-                    cp "$APP_DIR/cowboy_update.desktop" "$HOME/.local/share/applications/" 2>/dev/null
-                fi
-
                 echo -e "\e[32mUpdate complete! Relaunching...\e[0m"
-                exec "$0" "$@"  # restart script
+                # Get the full path to the script
+                SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+                exec "$SCRIPT_PATH" "$@"
                 ;;
             *)
                 echo -e "${YELLOW}Update skipped.${RESET}"
                 ;;
         esac
     else
-        echo -e "${GREEN}Cowboy-update is on latest version.${RESET}"
+        echo -e "${GREEN}Cowboy-update is already on the latest version.${RESET}"
     fi
 }
 
-
-
 self_update
+
 warn_large_update() {
-
     # Get list of packages that would be upgraded
-    UPDATE_LIST=$(checkupdates 2>/dev/null)
-    NUM_UPDATES=$(echo "$UPDATE_LIST" | wc -l)
-
-    if [ "$NUM_UPDATES" -gt 20 ]; then
-        echo -e "${YELLOW}⚠️  There are $NUM_UPDATES packages to update.${RESET}"
-        echo -e "${YELLOW}This is a large update and may take a while.${RESET}"
-        read -p "Do you want to proceed with the update? (y/n): " proceed
-        if [[ ! "$proceed" =~ ^[Yy]$ ]]; then
-            echo -e "${GREEN}Update canceled.${RESET}"
-            exit 0
+    UPDATE_LIST=$(checkupdates 2>/dev/null || true)
+    
+    # Only count if we got results
+    if [ -n "$UPDATE_LIST" ]; then
+        NUM_UPDATES=$(echo "$UPDATE_LIST" | wc -l)
+        
+        if [ "$NUM_UPDATES" -gt 20 ]; then
+            echo -e "${YELLOW}⚠️  There are $NUM_UPDATES packages to update.${RESET}"
+            echo -e "${YELLOW}This is a large update and may take a while.${RESET}"
+            read -p "Do you want to proceed with the update? (y/n): " proceed
+            if [[ ! "$proceed" =~ ^[Yy]$ ]]; then
+                echo -e "${GREEN}Update canceled.${RESET}"
+                exit 0
+            fi
         fi
     fi
 }
-
 
 # Track stats
 PACKAGES_UPDATED=0
@@ -205,20 +205,28 @@ echo "======================================="
 # Capture pacman output to check if kernel was updated
 PACMAN_LOG=$(mktemp)
 
+# Run pacman (disable exit-on-error for this command)
+set +e
 script -q -c "pacman -Syu" "$PACMAN_LOG"
+PACMAN_EXIT=$?
+set -e
 
 PACMAN_OUTPUT=$(cat "$PACMAN_LOG")
 rm "$PACMAN_LOG"
 
-# Count packages updated
-PACKAGES_UPDATED=$(echo "$PACMAN_OUTPUT" | grep -c "upgrading")
+# Count packages updated (handle case where grep finds nothing)
+if echo "$PACMAN_OUTPUT" | grep -q "upgrading"; then
+    PACKAGES_UPDATED=$(echo "$PACMAN_OUTPUT" | grep -c "upgrading")
+else
+    PACKAGES_UPDATED=0
+fi
 
 # Check for any kernel package update (CachyOS or standard Arch)
 if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|linux-hardened'; then
     KERNEL_UPDATED=true
 fi
 
-if echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
+if [ $PACMAN_EXIT -ne 0 ] || echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|failed"; then
         echo -e "${YELLOW}pacman failed!${RESET}"
         print_failure_art
         notify_user "Update Failed" "pacman failed" cowboy-icon
@@ -228,7 +236,12 @@ echo
 echo "======================================="
 echo -e "${GREEN}Updating AUR Packages...${RESET}"
 echo "======================================="
-if ! paru -Sua; then
+set +e
+paru -Sua
+PARU_EXIT=$?
+set -e
+
+if [ $PARU_EXIT -ne 0 ]; then
     echo -e "${YELLOW}paru failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "paru failed" cowboy-icon
@@ -238,7 +251,12 @@ echo
 echo "======================================="
 echo -e "${GREEN}Updating Flatpaks...${RESET}"
 echo "======================================="
-if ! flatpak update; then
+set +e
+flatpak update
+FLATPAK_EXIT=$?
+set -e
+
+if [ $FLATPAK_EXIT -ne 0 ]; then
     echo -e "${YELLOW}flatpak failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "flatpak failed" cowboy-icon
@@ -253,14 +271,17 @@ echo "======================================="
 echo
 echo "Checking for orphaned packages..."
 echo
-ORPHANS=$(pacman -Qtdq 2>/dev/null)
+ORPHANS=$(pacman -Qtdq 2>/dev/null || true)
 if [ -n "$ORPHANS" ]; then
     ORPHANS_REMOVED=$(echo "$ORPHANS" | wc -l)
+    ORPHANS_REMOVED=${ORPHANS_REMOVED//[^0-9]/}  # Keep only digits
     echo "Found orphaned packages:"
     echo "$ORPHANS"
     read -p "Remove them? (y/n): " choice
     if [[ $choice == "y" || $choice == "Y" ]]; then
+        set +e
         pacman -Rns $ORPHANS --noconfirm
+        set -e
     else
         ORPHANS_REMOVED=0
     fi
@@ -330,7 +351,7 @@ if [ "$KERNEL_UPDATED" = true ]; then
     echo
     echo "⚠️  REBOOT REQUIRED - Kernel was updated! ⚠️"
     echo
-    notify_user "Kernel was updated during this session""Reboot Required" cowboy-icon
+    notify_user "Kernel was updated during this session" "Reboot Required" cowboy-icon
 fi
 
 echo "+------------------------------------+"
@@ -357,7 +378,6 @@ echo "+------------------------------------+"
 echo "|         UPDATE SUMMARY             |"
 echo "+------------------------------------+"
 printf "| %-34s |\n" "Packages updated: $PACKAGES_UPDATED"
-#printf "| %-34s |\n" "Space Saved: $((SAVED / 1024)) MB"
 printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
