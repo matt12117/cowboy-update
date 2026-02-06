@@ -62,13 +62,15 @@ self_update() {
         return
     fi
 
-    # Make sure app dir is a git repo
-    if [ ! -d "$APP_DIR/.git" ]; then
-        echo "Error: $APP_DIR is not a git repository!"
+    # Get the actual directory where this script lives
+    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+    
+    if [ ! -d "$SCRIPT_DIR/.git" ]; then
+        echo "Error: $SCRIPT_DIR is not a git repository!"
         return
     fi
 
-    cd "$APP_DIR" || return
+    cd "$SCRIPT_DIR" || return
 
     # Fetch latest changes
     git fetch origin "$BRANCH" --quiet
