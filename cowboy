@@ -339,8 +339,9 @@ FLATPAK_USER_EXIT=$?
 set -e
 
 # Count updates from both outputs
-FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + $(echo "$FLATPAK_SYSTEM_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")))
-FLATPAKS_UPDATED=$((FLATPAKS_UPDATED + $(echo "$FLATPAK_USER_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")))
+SYSTEM_COUNT=$(echo "$FLATPAK_SYSTEM_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")
+USER_COUNT=$(echo "$FLATPAK_USER_OUTPUT" | grep -c "Installing\|Updating" 2>/dev/null || echo "0")
+FLATPAKS_UPDATED=$((SYSTEM_COUNT + USER_COUNT))
 
 # Check if either failed
 if [ $FLATPAK_SYSTEM_EXIT -ne 0 ] || [ $FLATPAK_USER_EXIT -ne 0 ]; then
