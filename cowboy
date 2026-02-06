@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 trap 'echo "Error on line $LINENO. Exiting."; exit 1' ERR
 
-# FIX: Define SCRIPT_DIR first, before anything else
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 ORIGINAL_USER=${SUDO_USER:-$USER}
