@@ -139,12 +139,14 @@ ln -sf "$SCRIPT" "$BIN_DIR/$BIN_NAME"
 echo "✓ Created symlink: $BIN_DIR/$BIN_NAME -> $SCRIPT"
 
 # ---- Create uninstall symlink ----
-UNINSTALL_SCRIPT="$REPO_DIR/uninstall.sh"
+UNINSTALL_SCRIPT="$REPO_DIR/uninstall"
 if [ -f "$UNINSTALL_SCRIPT" ]; then
     chmod +x "$UNINSTALL_SCRIPT"
     [ -L "$BIN_DIR/cowboy-uninstall" ] && rm "$BIN_DIR/cowboy-uninstall"
     ln -sf "$UNINSTALL_SCRIPT" "$BIN_DIR/cowboy-uninstall"
     echo "✓ Created uninstall command: cowboy-uninstall"
+else
+    echo "⚠️  Warning: uninstall.sh not found, skipping uninstall command"
 fi
 
 # ---- Check PATH ----
