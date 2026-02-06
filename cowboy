@@ -41,7 +41,7 @@ notify_user() {
         notify-send -a "Cowboy Update" -i "$icon" "$title" "$message"
 }
 
-echo -e "${RED}
+echo -e "${CYAN}
 ╔═══════════════════════════════════╗
 ║                                   ║
 ║                                   ║
