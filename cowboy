@@ -17,6 +17,7 @@ ORIGINAL_UID=$(id -u "$ORIGINAL_USER")
 USER_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
 APP_DIR="$SCRIPT_DIR"
 BRANCH="main"               
+LOG_FILE="$USER_HOME/cowboy-update/cowboy-update.log"
 
 # Relaunch as root if not already
 if [[ $EUID -ne 0 ]]; then
@@ -48,33 +49,6 @@ notify_user() {
         DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" \
         notify-send -a "Cowboy Update" -i "$icon" "$title" "$message"
 }
-
-echo -e "${CYAN}
-╔═══════════════════════════════════╗
-║                                   ║
-║                                   ║
-║      COWBOY-UPDATE SCRIPT         ║
-║                                   ║
-║                                   ║
-╔═══════════════════════════════════╝⠀⠀ ⠀⠀
-${RESET}"
-cat <<'EOF'
-  (                                 _
-   )                               /=>
-  (  +____________________/\/\___ / /|
-   .''._____________'._____      / /|/\
-  : () :              :\ ----\|    \ )
-   '..'______________.'0|----|      \
-                    0_0/____/        \
-                        |----    /----\
-                       || -\\ --|      \
-                       ||   || ||\      \
-                        \\____// '|      \
-                                .'/       |
-                               .:/        |
-                               :/_________|
-EOF
-read -p "Press Enter to begin..."
 
 self_update() {
     # Make sure git exists
@@ -150,8 +124,6 @@ self_update() {
     fi
 }
 
-self_update
-
 warn_large_update() {
     # Get list of packages that would be upgraded
     UPDATE_LIST=$(checkupdates 2>/dev/null || true)
@@ -171,6 +143,46 @@ warn_large_update() {
         fi
     fi
 }
+
+reboot_prompt() {
+    if [[ "$KERNEL_UPDATED" = true || "$GPU_UPDATED" = true ]]; then
+        read -p "Reboot recommended. Reboot now? (y/N): " choice
+        [[ "$choice" =~ ^[Yy]$ ]] && reboot
+    fi
+}
+
+log_summary() {
+    echo "$(date '+%F %T') | Packages: $PACKAGES_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
+}
+
+echo -e "${CYAN}
+╔═══════════════════════════════════╗
+║                                   ║
+║                                   ║
+║      COWBOY-UPDATE SCRIPT         ║
+║                                   ║
+║                                   ║
+╔═══════════════════════════════════╝
+${RESET}"
+cat <<'EOF'
+  (                                 _
+   )                               /=>
+  (  +____________________/\/\___ / /|
+   .''._____________'._____      / /|/\
+  : () :              :\ ----\|    \ )
+   '..'______________.'0|----|      \
+                    0_0/____/        \
+                        |----    /----\
+                       || -\\ --|      \
+                       ||   || ||\      \
+                        \\____// '|      \
+                                .'/       |
+                               .:/        |
+                               :/_________|
+EOF
+read -p "Press Enter to begin..."
+
+self_update
 
 # Track stats
 PACKAGES_UPDATED=0
@@ -396,6 +408,9 @@ if [ "$KERNEL_UPDATED" = true ] || [ "$GPU_UPDATED" = true ]; then
     echo "⚠️  ========================================== ⚠️"
     echo
 fi
+
+log_summary
+reboot_prompt
 
 echo "+------------------------------------+"
 echo -e "|${GREEN} SUCCESS! YOU CARRIED THAT WEIGHT!${RESET}  |"
