@@ -77,7 +77,7 @@ self_update() {
                 git fetch --all --prune --quiet
                 
                 # Stash local changes if any
-                if ! git diff-index --quiet HEAD --; then
+                if ! git diff-index --quiet HEAD --quiet; then
                     echo "Stashing local changes..."
                     git stash push -m "cowboy-update-autostash-$(date +%F_%H%M%S)"
                 fi
