@@ -227,7 +227,7 @@ if ! flatpak update; then
 fi
 
 echo "======================================="
-echo -e "${CYAN}Cleaning...${RESET}"
+echo -e "${GREEN}Cleaning...${RESET}"
 echo "======================================="
 # Check for orphaned packages
 echo
