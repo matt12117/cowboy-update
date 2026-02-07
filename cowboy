@@ -303,7 +303,7 @@ reboot_prompt() {
 
 create_rollback_snapshot() {
     KEEP_SNAPSHOTS=2
-    SNAP_DIR="/var/lib/cowboy-update/.snapshots"
+    SNAP_DIR="/.snapshots"
     sudo mkdir -p "$SNAP_DIR"
 
     # Detect root mount
