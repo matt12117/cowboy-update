@@ -449,7 +449,6 @@ EOF
 read -p "Press Enter to begin..."
 
 self_update
-detect_system_snapshots
 
 # Track stats
 PACKAGES_UPDATED=0
@@ -473,6 +472,7 @@ GPU_UPDATED=false
 
 warn_large_update
 check_disk_space
+detect_system_snapshots
 check_database_health
 
 # Update official repos
