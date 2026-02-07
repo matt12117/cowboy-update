@@ -369,7 +369,7 @@ log_summary() {
     SNAPSHOT_STATUS="${SNAPSHOT_STATUS:-NO}"
     SNAPSHOT_INFO="${SNAPSHOT_INFO:-None}"
 
-    echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO) | Snapshot: $SNAPSHOT_STATUS | Latest Snapshot: $SNAPSHOT_INFO" >> "$LOG_FILE"
+    echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO) | Snapshot Present: $SNAPSHOT_STATUS | Latest Snapshot: $SNAPSHOT_INFO" >> "$LOG_FILE"
 }
 
 
@@ -757,7 +757,7 @@ printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
 printf "| %-34s |\n" "GPU drivers updated: $([ "$GPU_UPDATED" = true ] && echo "YES" || echo "NO")"
-printf "| %-34s |\n" "Rollback snapshot: $SNAPSHOT_STATUS"
+printf "| %-34s |\n" "Rollback available: $SNAPSHOT_STATUS"
 printf "| %-34s |\n" "Time taken: ${MINUTES}m ${SECONDS}s"
 echo "+------------------------------------+"
 echo -e "${CYAN}Log of this update has been saved to:${RESET}"
