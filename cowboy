@@ -18,6 +18,16 @@ BRANCH="main"
 LOG_FILE="$USER_HOME/cowboy-update/cowboy-update.log"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
+# Get version from git tag if available
+if command -v git &>/dev/null && [ -d "$SCRIPT_DIR/.git" ]; then
+    pushd "$SCRIPT_DIR" > /dev/null
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+    popd > /dev/null
+else
+    VERSION="unknown"
+fi
+
+
 # Colors (only if output is a TTY)
 if [ -t 1 ]; then
     RED="\e[31m"
@@ -226,7 +236,7 @@ warn_large_update() {
         NUM_UPDATES=$(echo "$UPDATE_LIST" | wc -l)
 
         # Threshold for "large update"
-        LARGE_UPDATE_THRESHOLD=20
+        LARGE_UPDATE_THRESHOLD=50
 
         if [ "$NUM_UPDATES" -gt $LARGE_UPDATE_THRESHOLD ]; then
             echo -e "${YELLOW}⚠️  There are $NUM_UPDATES packages to update.${RESET}"
@@ -315,7 +325,7 @@ create_rollback_snapshot() {
     [ -n "$LAST_ROLLBACK" ] && LAST_SNAP_TS=$(stat -c %Y "$LAST_ROLLBACK" 2>/dev/null || echo 0)
     DAYS_SINCE=$(( ( $(date +%s) - LAST_SNAP_TS ) / 86400 ))
 
-    # Silent skip if recent snapshot exists (<14 days)
+    # Silent skip if recent snapshot exists (<30 days)
     [ "$LAST_SNAP_TS" -ne 0 ] && [ "$DAYS_SINCE" -lt 14 ] && return
 
     # Ask user to create snapshot
@@ -348,15 +358,20 @@ create_rollback_snapshot() {
     done
 
     echo
-    echo -e "${CYAN}✅ Btrfs snapshot created at $SNAP_PATH${RESET}"
-    echo -e "${CYAN}📌 Note: In case of issues, select this snapshot from your bootloader (Grub/OS-prober) to rollback.${RESET}"
+    echo -e "${CYAN}Btrfs snapshot created at $SNAP_PATH${RESET}"
+    echo -e "${CYAN}Note: In case of issues, select this snapshot from your bootloader (Grub/OS-prober) to rollback.${RESET}"
     echo
 }
 
 
 log_summary() {
-    echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
+    # Default values if variables are unset
+    SNAPSHOT_STATUS="${SNAPSHOT_STATUS:-NO}"
+    SNAPSHOT_INFO="${SNAPSHOT_INFO:-None}"
+
+    echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO) | Snapshot: $SNAPSHOT_STATUS | Latest Snapshot: $SNAPSHOT_INFO" >> "$LOG_FILE"
 }
+
 
 report_pacnew_files() {
     PACNEW_COUNT=$(find /etc -name "*.pacnew" 2>/dev/null | wc -l)
@@ -422,8 +437,8 @@ check_database_health() {
 echo -e "${CYAN}
 ╔══════════════════════════════════╗
 ║                                  ║
-║                                  ║
 ║       COWBOY-UPDATE SCRIPT       ║
+║              ${VERSION}                ║
 ║                                  ║
 ║              sunny               ║
 ╚══════════════════════════════════╝${RESET}"
@@ -682,9 +697,6 @@ DURATION=$((END_TIME - START_TIME))
 MINUTES=$((DURATION / 60))
 SECONDS=$((DURATION % 60))
 
-log_summary
-reboot_prompt
-
 echo "+------------------------------------+"
 echo -e "|${GREEN} SUCCESS! YOU CARRIED THAT WEIGHT!${RESET}  |"
 echo "+------------------------------------+"
@@ -715,21 +727,26 @@ if [ -d "$SNAP_DIR" ]; then
     if [ -z "$LATEST_SNAP" ]; then
         echo "No Cowboy rollback snapshots found."
         SNAPSHOT_STATUS="NO"
+        SNAPSHOT_INFO="NONE"
     else
         SNAP_PATH="$SNAP_DIR/$LATEST_SNAP"
         SNAP_TS=$(stat -c %Y "$SNAP_PATH" 2>/dev/null || echo 0)
         AGE_DAYS=$(( ( $(date +%s) - SNAP_TS ) / 86400 ))
         echo "$LATEST_SNAP (age: $AGE_DAYS day(s)) at $SNAP_PATH"
         SNAPSHOT_STATUS="YES"
+        SNAPSHOT_INFO="$LATEST_SNAP (age: $AGE_DAYS day(s)) at $SNAP_PATH"
     fi
 else
     echo "Snapshot directory $SNAP_DIR not found."
     SNAPSHOT_STATUS="NO"
+    SNAPSHOT_INFO="NONE"
 fi
 
 echo -e "${MAGENTA}^^IN CASE OF EMERGENCY: USE YOUR BOOTLOADER TO ROLLBACK LAST SNAPSHOT^^${RESET}"
 
 # --- Update Summary ---
+log_summary
+
 echo -e "${CYAN}+------------------------------------+"
 echo "|          UPDATE SUMMARY            |"
 echo -e "+------------------------------------+${RESET}"
@@ -747,6 +764,7 @@ echo -e "${CYAN}Log of this update has been saved to:${RESET}"
 echo -e "${BOLD}$LOG_FILE${RESET}"
 echo
 
+reboot_prompt
 notify_user "System Updated" "Yeehaw"
 
 read -p "Press Enter to close, space cowboy..."
