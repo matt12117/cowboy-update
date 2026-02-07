@@ -64,6 +64,20 @@ SUDO_KEEPER_PID=$!
 trap 'kill $SUDO_KEEPER_PID 2>/dev/null; echo "Error on line $LINENO. Exiting."; exit 1' ERR
 trap 'kill $SUDO_KEEPER_PID 2>/dev/null' EXIT
 
+warn() {
+    local msg="$1"
+    echo -e "${YELLOW}⚠️  WARNING: $msg${RESET}"
+    echo "$(date '+%F %T') | WARN | $msg" >> "$LOG_FILE"
+}
+
+fatal() {
+    local msg="$1"
+    echo -e "${RED}❌ FATAL: $msg${RESET}"
+    echo "$(date '+%F %T') | FATAL | $msg" >> "$LOG_FILE"
+    notify_user "Update Failed" "$msg" cowboy-icon
+    exit 1
+}
+
 notify_user() {
     local title="$1"
     local message="$2"
@@ -245,6 +259,7 @@ check_database_health() {
         echo -e "${DIM}Optional fix:${RESET}"
         echo -e "${DIM}  sudo pacman -Syu --overwrite '*'${RESET}"
         SEVERITY="LOW"
+        warn "some missing packages, continuing update."
     else
         echo -e "${RED}⚠️  Multiple packages affected — investigate.${RESET}"
         SEVERITY="HIGH"
@@ -373,6 +388,7 @@ if [ $PACMAN_EXIT -ne 0 ] || echo "$PACMAN_OUTPUT" | tail -5 | grep -qi "error\|
         echo -e "${YELLOW}pacman failed!${RESET}"
         print_failure_art
         notify_user "Update Failed" "pacman failed" cowboy-icon
+        fatal "pacman failed"
 fi
 
 echo
@@ -395,6 +411,7 @@ if [ $PARU_EXIT -ne 0 ]; then
     echo -e "${YELLOW}paru failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "paru failed" cowboy-icon
+    warn "paru failed, continuing update"
 fi
 
 echo
@@ -432,6 +449,7 @@ if [ $FLATPAK_SYSTEM_EXIT -ne 0 ] || [ $FLATPAK_USER_EXIT -ne 0 ]; then
     echo -e "${YELLOW}flatpak update failed!${RESET}"
     print_failure_art
     notify_user "Update Failed" "flatpak failed" cowboy-icon
+    warn "flatpak failed, continuing update"
 fi
 
 echo
