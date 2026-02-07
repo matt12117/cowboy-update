@@ -248,15 +248,19 @@ handle_pacnew_files() {
 check_database_health() {
     echo "Checking pacman database integrity..."
 
+    # pacman -Qk returns non-zero when missing files exist (normal)
     DB_OUTPUT=$(pacman -Qk 2>/dev/null || true)
 
-    # Only keep package summary lines with missing files
-    BAD_PKGS=$(echo "$DB_OUTPUT" | grep -E "missing file[s]?\)$" | grep -v ": 0 missing")
+    # Extract ONLY package summary lines with missing files
+    BAD_PKGS=$(echo "$DB_OUTPUT" \
+        | grep -E "missing file[s]?\)$" \
+        | grep -v ": 0 missing" \
+        || true)
 
     if [ -z "$BAD_PKGS" ]; then
         echo -e "${GREEN}✓ Database is healthy${RESET}"
         echo "$(date '+%F %T') | DB CHECK | OK | 0 packages affected" >> "$LOG_FILE"
-        return
+        return 0
     fi
 
     PKG_COUNT=$(echo "$BAD_PKGS" | wc -l)
@@ -266,18 +270,13 @@ check_database_health() {
     echo "$BAD_PKGS"
     echo
 
-    # Severity classification
     if [ "$PKG_COUNT" -le 3 ]; then
-        echo -e "${DIM}This is usually harmless and very common on Arch.${RESET}"
-        echo -e "${DIM}Often caused by MIME DB updates or upstream packaging changes.${RESET}"
+        echo -e "${DIM}This is very common on Arch and usually harmless.${RESET}"
         echo -e "${DIM}Optional fix:${RESET}"
         echo -e "${DIM}  sudo pacman -Syu --overwrite '*'${RESET}"
         SEVERITY="LOW"
     else
-        echo -e "${RED}⚠️  Multiple packages affected — possible corruption.${RESET}"
-        echo -e "${RED}Recommended:${RESET}"
-        echo "  sudo pacman -Qk"
-        echo "  sudo pacman -Syu --overwrite '*'"
+        echo -e "${RED}⚠️  Multiple packages affected — investigate.${RESET}"
         SEVERITY="HIGH"
     fi
 
