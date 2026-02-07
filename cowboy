@@ -211,7 +211,7 @@ report_pacnew_files() {
     echo "  sudo pacdiff"
     echo
 
-    echo "$(date '+%F %
+    echo "$(date '+%F %"
 
 # Verify pacman database isn't corrupted
 check_database_health() {
