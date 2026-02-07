@@ -301,66 +301,54 @@ reboot_prompt() {
     fi
 }
 
-create_rollback_snapshot() {
-    KEEP_SNAPSHOTS=2
+detect_system_snapshots() {
     SNAP_DIR="/.snapshots"
-    sudo mkdir -p "$SNAP_DIR"
-
-    # Detect root mount
+    
+    # Check if btrfs
     ROOT_FS=$(findmnt -n -o FSTYPE /)
     if [ "$ROOT_FS" != "btrfs" ]; then
+        echo -e "${DIM}Note: Not using Btrfs - snapshots unavailable${RESET}"
         echo "$(date '+%F %T') | SNAPSHOT | SKIPPED | Root FS is not Btrfs" >> "$LOG_FILE"
         return
     fi
-
-    # Determine absolute path of root subvolume
-    ROOT_SUBVOL_PATH=$(btrfs subvolume list / -p | awk '$5=="/"{print $9}' | head -n1)
-    [ -z "$ROOT_SUBVOL_PATH" ] && ROOT_SUBVOL_PATH="/"
-    [ ! -d "/$ROOT_SUBVOL_PATH" ] && ROOT_SUBVOL_PATH="/"
-    ROOT_SUBVOL_PATH="/$ROOT_SUBVOL_PATH"
-
-    # Detect last Cowboy rollback snapshot
-    LAST_ROLLBACK=$(find "$SNAP_DIR" -maxdepth 1 -type d -name "cowboy-rollback-*" | sort -r | head -1)
-    LAST_SNAP_TS=0
-    [ -n "$LAST_ROLLBACK" ] && LAST_SNAP_TS=$(stat -c %Y "$LAST_ROLLBACK" 2>/dev/null || echo 0)
-    DAYS_SINCE=$(( ( $(date +%s) - LAST_SNAP_TS ) / 86400 ))
-
-    # Silent skip if recent snapshot exists (<30 days)
-    [ "$LAST_SNAP_TS" -ne 0 ] && [ "$DAYS_SINCE" -lt 14 ] && return
-
-    # Ask user to create snapshot
-    read -rp "Create a rollback snapshot now? (y/N): " choice
-    [[ ! "$choice" =~ ^[Yy]$ ]] && { echo "Skipping rollback snapshot."; return; }
-
-    # Timeshift snapshot (if installed)
-    if command -v timeshift &>/dev/null; then
-        sudo timeshift --create --comments "Cowboy rollback $(date '+%F %H:%M:%S')" --tags D
-        echo "$(date '+%F %T') | SNAPSHOT | TIMESYNC | Success" >> "$LOG_FILE"
+    
+    # Check for snapshot directory
+    if [ ! -d "$SNAP_DIR" ]; then
+        echo -e "${YELLOW}⚠️  No snapshot directory found${RESET}"
+        echo "Consider enabling automatic snapshots with:"
+        echo "  • Timeshift (timeshift + timeshift-autosnap)"
+        echo "  • Snapper"
+        echo "  • Your distro's snapshot tool"
+        return
     fi
-
-    # Btrfs snapshot
-    SNAP_NAME="cowboy-rollback-$(date '+%F_%H%M%S')"
-    SNAP_PATH="$SNAP_DIR/$SNAP_NAME"
-    if sudo btrfs subvolume snapshot -r "$ROOT_SUBVOL_PATH" "$SNAP_PATH"; then
-        echo "$(date '+%F %T') | SNAPSHOT | BTRFS | Created at $SNAP_PATH" >> "$LOG_FILE"
-    else
-        echo "$(date '+%F %T') | SNAPSHOT | BTRFS | FAILED" >> "$LOG_FILE"
-        return 1
+    
+    # Count available snapshots
+    TOTAL_SNAPSHOTS=$(find "$SNAP_DIR" -maxdepth 1 -type d ! -path "$SNAP_DIR" 2>/dev/null | wc -l)
+    
+    if [ "$TOTAL_SNAPSHOTS" -eq 0 ]; then
+        echo -e "${YELLOW}⚠️  Snapshot directory exists but no snapshots found${RESET}"
+        echo "Enable automatic snapshots for rollback capability"
+        return
     fi
-
-    # Keep only last N snapshots
-    SNAP_COUNT=$(ls -1t "$SNAP_DIR" 2>/dev/null | wc -l)
-    while [ "$SNAP_COUNT" -gt "$KEEP_SNAPSHOTS" ]; do
-        OLDEST=$(ls -1t "$SNAP_DIR" | tail -1)
-        sudo btrfs subvolume delete "$SNAP_DIR/$OLDEST"
-        echo "$(date '+%F %T') | SNAPSHOT | BTRFS | Deleted $OLDEST" >> "$LOG_FILE"
-        SNAP_COUNT=$((SNAP_COUNT - 1))
-    done
-
-    echo
-    echo -e "${CYAN}Btrfs snapshot created at $SNAP_PATH${RESET}"
-    echo -e "${CYAN}Note: In case of issues, select this snapshot from your bootloader (Grub/OS-prober) to rollback.${RESET}"
-    echo
+    
+    # Find most recent snapshot
+    LATEST_SNAP=$(find "$SNAP_DIR" -maxdepth 1 -type d ! -path "$SNAP_DIR" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+    
+    if [ -n "$LATEST_SNAP" ]; then
+        SNAP_NAME=$(basename "$LATEST_SNAP")
+        SNAP_AGE=$(( ( $(date +%s) - $(stat -c %Y "$LATEST_SNAP") ) / 86400 ))
+        
+        echo -e "${GREEN}✓ Snapshots available for rollback${RESET}"
+        echo "  Latest: $SNAP_NAME (${SNAP_AGE} days old)"
+        echo "  Total snapshots: $TOTAL_SNAPSHOTS"
+        
+        # Warn if snapshot is old
+        if [ "$SNAP_AGE" -gt 30 ]; then
+            echo -e "${YELLOW}  ⚠️  Latest snapshot is >30 days old - consider creating a new one${RESET}"
+        fi
+        
+        echo "$(date '+%F %T') | SNAPSHOT | DETECTED | $TOTAL_SNAPSHOTS snapshots, latest: $SNAP_NAME (${SNAP_AGE}d old)" >> "$LOG_FILE"
+    fi
 }
 
 
@@ -461,7 +449,7 @@ EOF
 read -p "Press Enter to begin..."
 
 self_update
-create_rollback_snapshot
+detect_system_snapshots
 
 # Track stats
 PACKAGES_UPDATED=0
@@ -722,27 +710,38 @@ echo -e "|${GREEN}          BACKUP SUMMARY${RESET}            |"
 echo "+------------------------------------+"
 
 if [ -d "$SNAP_DIR" ]; then
-    # Get most recent snapshot
-    LATEST_SNAP=$(ls -1t "$SNAP_DIR" 2>/dev/null | head -1)
-    if [ -z "$LATEST_SNAP" ]; then
-        echo "No Cowboy rollback snapshots found."
+    # Count all snapshots
+    TOTAL_SNAPSHOTS=$(find "$SNAP_DIR" -maxdepth 1 -type d ! -path "$SNAP_DIR" 2>/dev/null | wc -l)
+    
+    if [ "$TOTAL_SNAPSHOTS" -eq 0 ]; then
+        echo "No snapshots found."
+        echo "Enable snapshots with Timeshift or Snapper for rollback protection."
         SNAPSHOT_STATUS="NO"
         SNAPSHOT_INFO="NONE"
     else
-        SNAP_PATH="$SNAP_DIR/$LATEST_SNAP"
-        SNAP_TS=$(stat -c %Y "$SNAP_PATH" 2>/dev/null || echo 0)
-        AGE_DAYS=$(( ( $(date +%s) - SNAP_TS ) / 86400 ))
-        echo "$LATEST_SNAP (age: $AGE_DAYS day(s)) at $SNAP_PATH"
-        SNAPSHOT_STATUS="YES"
-        SNAPSHOT_INFO="$LATEST_SNAP (age: $AGE_DAYS day(s)) at $SNAP_PATH"
+        # Get most recent snapshot (any type)
+        LATEST_SNAP=$(find "$SNAP_DIR" -maxdepth 1 -type d ! -path "$SNAP_DIR" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+        
+        if [ -n "$LATEST_SNAP" ]; then
+            SNAP_NAME=$(basename "$LATEST_SNAP")
+            SNAP_TS=$(stat -c %Y "$LATEST_SNAP" 2>/dev/null || echo 0)
+            AGE_DAYS=$(( ( $(date +%s) - SNAP_TS ) / 86400 ))
+            
+            echo "Latest: $SNAP_NAME (${AGE_DAYS} days old)"
+            echo "Total snapshots: $TOTAL_SNAPSHOTS"
+            
+            SNAPSHOT_STATUS="YES"
+            SNAPSHOT_INFO="$SNAP_NAME (${AGE_DAYS}d old)"
+        fi
     fi
 else
-    echo "Snapshot directory $SNAP_DIR not found."
+    echo "Snapshot directory not found."
+    echo "Your system may not have snapshot support enabled."
     SNAPSHOT_STATUS="NO"
     SNAPSHOT_INFO="NONE"
 fi
 
-echo -e "${MAGENTA}^^IN CASE OF EMERGENCY: USE YOUR BOOTLOADER TO ROLLBACK LAST SNAPSHOT^^${RESET}"
+echo -e "${MAGENTA}^^IN CASE OF EMERGENCY: ROLLBACK VIA BOOTLOADER OR SNAPSHOT TOOL^^${RESET}"
 
 # --- Update Summary ---
 log_summary
