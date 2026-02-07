@@ -114,9 +114,13 @@ if [ -d "$REPO_DIR" ]; then
     else
         read -p "Remove repository directory?(y/N): " remove_repo
     fi
-    
+
     if [[ "$remove_repo" =~ ^[Yy]$ ]]; then
-        rm -rf "$REPO_DIR"
+        # Try normal removal first
+        if ! rm -rf "$REPO_DIR" 2>/dev/null; then
+            echo -e "${YELLOW}⚠️  Some files need root privileges. Retrying with sudo...${RESET}"
+            sudo rm -rf "$REPO_DIR"
+        fi
         REMOVED+=("Repository directory")
         echo -e "${GREEN}✓${RESET} Removed repository directory"
     else
