@@ -18,6 +18,11 @@ BRANCH="main"
 LOG_FILE="$USER_HOME/cowboy-update/cowboy-update.log"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
+# Keep last 1000 lines of cowboy-update.log
+if [ -f "$LOG_FILE" ]; then
+    tail -n 1000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+fi
+
 # Colors (only if output is a TTY)
 if [ -t 1 ]; then
     RED="\e[31m"
