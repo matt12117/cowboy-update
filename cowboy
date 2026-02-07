@@ -248,37 +248,40 @@ handle_pacnew_files() {
 check_database_health() {
     echo "Checking pacman database integrity..."
 
-    DB_CHECK_OUTPUT=$(pacman -Qk 2>&1 || true)
+    DB_OUTPUT=$(pacman -Qk 2>/dev/null || true)
 
-    # Extract missing file lines
-    MISSING_LINES=$(echo "$DB_CHECK_OUTPUT" | grep -E "missing file|No such file" || true)
-    MISSING_COUNT=$(echo "$MISSING_LINES" | wc -l)
+    # Only keep package summary lines with missing files
+    BAD_PKGS=$(echo "$DB_OUTPUT" | grep -E "missing file[s]?\)$" | grep -v ": 0 missing")
 
-    if [ "$MISSING_COUNT" -eq 0 ]; then
-        echo -e "${GREEN}✓ Database is healthy (no missing files)${RESET}"
-        echo "$(date '+%F %T') | DB CHECK | OK | 0 missing files" >> "$LOG_FILE"
+    if [ -z "$BAD_PKGS" ]; then
+        echo -e "${GREEN}✓ Database is healthy${RESET}"
+        echo "$(date '+%F %T') | DB CHECK | OK | 0 packages affected" >> "$LOG_FILE"
         return
     fi
 
-    echo -e "${YELLOW}⚠️  $MISSING_COUNT missing file(s) detected${RESET}"
+    PKG_COUNT=$(echo "$BAD_PKGS" | wc -l)
+
+    echo -e "${YELLOW}⚠️  $PKG_COUNT package(s) with missing files detected${RESET}"
     echo
-    echo "$MISSING_LINES"
+    echo "$BAD_PKGS"
     echo
 
-    if [ "$MISSING_COUNT" -le 3 ]; then
-        echo -e "${DIM}This is usually harmless (common after MIME or package transitions).${RESET}"
-        echo -e "${DIM}You can fix it later with:${RESET}"
+    # Severity classification
+    if [ "$PKG_COUNT" -le 3 ]; then
+        echo -e "${DIM}This is usually harmless and very common on Arch.${RESET}"
+        echo -e "${DIM}Often caused by MIME DB updates or upstream packaging changes.${RESET}"
+        echo -e "${DIM}Optional fix:${RESET}"
         echo -e "${DIM}  sudo pacman -Syu --overwrite '*'${RESET}"
         SEVERITY="LOW"
     else
-        echo -e "${RED}⚠️  This may indicate package corruption.${RESET}"
+        echo -e "${RED}⚠️  Multiple packages affected — possible corruption.${RESET}"
         echo -e "${RED}Recommended:${RESET}"
         echo "  sudo pacman -Qk"
         echo "  sudo pacman -Syu --overwrite '*'"
         SEVERITY="HIGH"
     fi
 
-    echo "$(date '+%F %T') | DB CHECK | $SEVERITY | $MISSING_COUNT missing files" >> "$LOG_FILE"
+    echo "$(date '+%F %T') | DB CHECK | $SEVERITY | $PKG_COUNT packages affected" >> "$LOG_FILE"
 }
 
 echo -e "${CYAN}
