@@ -340,7 +340,7 @@ create_rollback_snapshot() {
             
             # Clean up old Timeshift snapshots tagged with 'D' (daily)
             # Keep only the last 3 Cowboy-created Timeshift snapshots
-            TIMESHIFT_SNAPS=$(sudo timeshift --list --scripted | grep "D >" | grep "Cowboy rollback" | awk '{print $2}' | sort -r)
+            TIMESHIFT_SNAPS=$(sudo timeshift --list --scripted | grep "D >" | grep "Cowboy rollback" | awk '{print $3}' | sort -r)
             TIMESHIFT_COUNT=$(echo "$TIMESHIFT_SNAPS" | wc -l)
             
             if [ "$TIMESHIFT_COUNT" -gt "$KEEP_SNAPSHOTS" ]; then
