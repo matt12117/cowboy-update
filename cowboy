@@ -193,56 +193,25 @@ log_summary() {
     echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
 }
 
-handle_pacnew_files() {
-    echo "Checking for .pacnew/.pacsave files..."
-    echo
-    
-    PACNEW_FILES=$(find /etc -name "*.pacnew" 2>/dev/null)
-    PACSAVE_FILES=$(find /etc -name "*.pacsave" 2>/dev/null)
-    
-    if [ -n "$PACNEW_FILES" ]; then
-        PACNEW_COUNT=$(echo "$PACNEW_FILES" | wc -l)
-        echo -e "${YELLOW}⚠️  Found $PACNEW_COUNT .pacnew file(s):${RESET}"
-        echo "$PACNEW_FILES"
-        echo ""
-        
-        if command -v pacdiff &>/dev/null; then
-            echo "These are new config files from updated packages."
-            echo "You should review and merge them with your current configs."
-            echo ""
-            read -p "Merge .pacnew files interactively? (y/N): " merge
-            
-            if [[ "$merge" =~ ^[Yy]$ ]]; then
-                # Use best available diff tool
-                if command -v vimdiff &>/dev/null; then
-                    DIFFPROG=vimdiff pacdiff
-                elif command -v meld &>/dev/null; then
-                    DIFFPROG=meld pacdiff
-                else
-                    pacdiff
-                fi
-                echo -e "${GREEN}✓ .pacnew files processed${RESET}"
-            else
-                echo -e "${YELLOW}⚠️  Remember to merge these later with: sudo pacdiff${RESET}"
-            fi
-        else
-            echo -e "${YELLOW}💡 Tip: Install 'pacman-contrib' for easy merging${RESET}"
-            echo "   sudo pacman -S pacman-contrib"
-            echo "   Then run: sudo pacdiff"
-        fi
-    else
-        echo "No .pacnew files found."
+report_pacnew_files() {
+    PACNEW_COUNT=$(find /etc -name "*.pacnew" 2>/dev/null | wc -l)
+    PACSAVE_COUNT=$(find /etc -name "*.pacsave" 2>/dev/null | wc -l)
+
+    if [ "$PACNEW_COUNT" -eq 0 ] && [ "$PACSAVE_COUNT" -eq 0 ]; then
+        return
     fi
-    
-    if [ -n "$PACSAVE_FILES" ]; then
-        echo ""
-        echo -e "${DIM}Found .pacsave files (old configs from removed packages):${RESET}"
-        echo "$PACSAVE_FILES"
-        echo "These can usually be safely deleted."
-    fi
-    
+
     echo
-}
+    echo -e "${YELLOW}⚠️  Config files need review${RESET}"
+    echo "  .pacnew files:  $PACNEW_COUNT"
+    echo "  .pacsave files: $PACSAVE_COUNT"
+    echo
+    echo "Nothing was overwritten."
+    echo "Review later with:"
+    echo "  sudo pacdiff"
+    echo
+
+    echo "$(date '+%F %
 
 # Verify pacman database isn't corrupted
 check_database_health() {
@@ -522,7 +491,7 @@ if command -v flatpak &> /dev/null; then
     sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak uninstall --user --unused -y > /dev/null 2>&1
 fi
 
-handle_pacnew_files
+report_pacnew_files
 
 # List services using old libraries
 if command -v needrestart &> /dev/null; then
