@@ -7,11 +7,10 @@ Update wrapper, cleaner, snapshot support for Arch (Sys/AUR/Flatpak)
 - Updates official repos (via pacman)
 - Updates AUR packages (via paru)
 - Updates Flatpaks system & user
-- Creates snapshot (Timeshift/BTRFS) -> ./snaphot
 - Creates pacman database backup on large updates
-- Smart Save -> Snapshot created every 14 days, only holds 2 snapshots
-- Detect-Bloat deletes old snapshots, pacman backups, and older .log lines
+- Detect-Bloat deletes old pacman backups, and older .log lines
 - Checks if kernel/GPU updated and reboot reminder
+- Checks if user has snapshot available and logs it
 - Removes Orphans
 - Cleans package cache (keep last 2 versions)
 - Cleans flatpak cache
