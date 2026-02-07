@@ -211,7 +211,8 @@ report_pacnew_files() {
     echo "  sudo pacdiff"
     echo
 
-    echo "$(date '+%F %"
+    echo "$(date '+%F %T') | PACNEW | $PACNEW_COUNT pacnew | $PACSAVE_COUNT pacsave" >> "$LOG_FILE"
+}
 
 # Verify pacman database isn't corrupted
 check_database_health() {
