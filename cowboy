@@ -247,14 +247,38 @@ handle_pacnew_files() {
 # Verify pacman database isn't corrupted
 check_database_health() {
     echo "Checking pacman database integrity..."
-    
-    if ! pacman -Qk &>/dev/null; then
-        echo -e "${YELLOW}⚠️  Database issues detected${RESET}"
-        echo "Running database check..."
-        pacman -Qk 2>&1 | grep -v "0 missing files"
-    else
-        echo -e "${GREEN}✓ Database is healthy${RESET}"
+
+    DB_CHECK_OUTPUT=$(pacman -Qk 2>&1 || true)
+
+    # Extract missing file lines
+    MISSING_LINES=$(echo "$DB_CHECK_OUTPUT" | grep -E "missing file|No such file" || true)
+    MISSING_COUNT=$(echo "$MISSING_LINES" | wc -l)
+
+    if [ "$MISSING_COUNT" -eq 0 ]; then
+        echo -e "${GREEN}✓ Database is healthy (no missing files)${RESET}"
+        echo "$(date '+%F %T') | DB CHECK | OK | 0 missing files" >> "$LOG_FILE"
+        return
     fi
+
+    echo -e "${YELLOW}⚠️  $MISSING_COUNT missing file(s) detected${RESET}"
+    echo
+    echo "$MISSING_LINES"
+    echo
+
+    if [ "$MISSING_COUNT" -le 3 ]; then
+        echo -e "${DIM}This is usually harmless (common after MIME or package transitions).${RESET}"
+        echo -e "${DIM}You can fix it later with:${RESET}"
+        echo -e "${DIM}  sudo pacman -Syu --overwrite '*'${RESET}"
+        SEVERITY="LOW"
+    else
+        echo -e "${RED}⚠️  This may indicate package corruption.${RESET}"
+        echo -e "${RED}Recommended:${RESET}"
+        echo "  sudo pacman -Qk"
+        echo "  sudo pacman -Syu --overwrite '*'"
+        SEVERITY="HIGH"
+    fi
+
+    echo "$(date '+%F %T') | DB CHECK | $SEVERITY | $MISSING_COUNT missing files" >> "$LOG_FILE"
 }
 
 echo -e "${CYAN}
