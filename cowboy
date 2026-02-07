@@ -46,7 +46,7 @@ fi
 
 # Relaunch as root if not already
 if [[ $EUID -ne 0 ]]; then
-    echo "Cowboy Update requires sudo."
+    echo -e "${BOLD}-----Cowboy Update requires sudo privileges to run!-----${RESET}"
     exec sudo "$0" "$@"
 fi
 
@@ -167,6 +167,21 @@ warn_large_update() {
     fi
 }
 
+check_disk_space() {
+    AVAILABLE_SPACE=$(df / | tail -1 | awk '{print $4}')
+    AVAILABLE_GB=$((AVAILABLE_SPACE / 1024 / 1024))
+    
+    if [ $AVAILABLE_GB -lt 5 ]; then
+        echo ""
+        echo -e "${RED}⚠️  WARNING: Only ${AVAILABLE_GB}GB free space available!${RESET}"
+        echo "Recommended: At least 5GB free for safe updates"
+        read -p "Continue anyway? (y/N): " continue_update
+        if [[ ! "$continue_update" =~ ^[Yy]$ ]]; then
+            echo "Update cancelled. Free up some space first."
+            exit 0
+        fi
+    fi
+}
 reboot_prompt() {
     if [[ "$KERNEL_UPDATED" = true || "$GPU_UPDATED" = true ]]; then
         read -p "Reboot recommended. Reboot now? (y/N): " choice
@@ -175,7 +190,71 @@ reboot_prompt() {
 }
 
 log_summary() {
-    echo "$(date '+%F %T') | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
+    echo "$(date '+%F %T') | Time: ${MINUTES}m ${SECONDS}s | Packages: $PACKAGES_UPDATED | AUR: $AUR_UPDATED | Flatpaks: $FLATPAKS_UPDATED | Orphans: $ORPHANS_REMOVED | Cache: $CACHE_CLEANED | Kernel: $([ "$KERNEL_UPDATED" = true ] && echo YES || echo NO) | GPU: $([ "$GPU_UPDATED" = true ] && echo YES || echo NO)" >> "$LOG_FILE"
+}
+
+handle_pacnew_files() {
+    echo "Checking for .pacnew/.pacsave files..."
+    echo
+    
+    PACNEW_FILES=$(find /etc -name "*.pacnew" 2>/dev/null)
+    PACSAVE_FILES=$(find /etc -name "*.pacsave" 2>/dev/null)
+    
+    if [ -n "$PACNEW_FILES" ]; then
+        PACNEW_COUNT=$(echo "$PACNEW_FILES" | wc -l)
+        echo -e "${YELLOW}⚠️  Found $PACNEW_COUNT .pacnew file(s):${RESET}"
+        echo "$PACNEW_FILES"
+        echo ""
+        
+        if command -v pacdiff &>/dev/null; then
+            echo "These are new config files from updated packages."
+            echo "You should review and merge them with your current configs."
+            echo ""
+            read -p "Merge .pacnew files interactively? (y/N): " merge
+            
+            if [[ "$merge" =~ ^[Yy]$ ]]; then
+                # Use best available diff tool
+                if command -v vimdiff &>/dev/null; then
+                    DIFFPROG=vimdiff pacdiff
+                elif command -v meld &>/dev/null; then
+                    DIFFPROG=meld pacdiff
+                else
+                    pacdiff
+                fi
+                echo -e "${GREEN}✓ .pacnew files processed${RESET}"
+            else
+                echo -e "${YELLOW}⚠️  Remember to merge these later with: sudo pacdiff${RESET}"
+            fi
+        else
+            echo -e "${YELLOW}💡 Tip: Install 'pacman-contrib' for easy merging${RESET}"
+            echo "   sudo pacman -S pacman-contrib"
+            echo "   Then run: sudo pacdiff"
+        fi
+    else
+        echo "No .pacnew files found."
+    fi
+    
+    if [ -n "$PACSAVE_FILES" ]; then
+        echo ""
+        echo -e "${DIM}Found .pacsave files (old configs from removed packages):${RESET}"
+        echo "$PACSAVE_FILES"
+        echo "These can usually be safely deleted."
+    fi
+    
+    echo
+}
+
+# Verify pacman database isn't corrupted
+check_database_health() {
+    echo "Checking pacman database integrity..."
+    
+    if ! pacman -Qk &>/dev/null; then
+        echo -e "${YELLOW}⚠️  Database issues detected${RESET}"
+        echo "Running database check..."
+        pacman -Qk 2>&1 | grep -v "0 missing files"
+    else
+        echo -e "${GREEN}✓ Database is healthy${RESET}"
+    fi
 }
 
 echo -e "${CYAN}
@@ -212,6 +291,7 @@ AUR_UPDATED=0
 FLATPAKS_UPDATED=0
 ORPHANS_REMOVED=0
 CACHE_CLEANED="0 MB"
+START_TIME=$(date +%s)
 
 print_failure_art() {
 cat <<'EOF'
@@ -256,6 +336,8 @@ KERNEL_UPDATED=false
 GPU_UPDATED=false
 
 warn_large_update
+check_disk_space
+check_database_health
 
 # Update official repos
 echo
@@ -282,12 +364,12 @@ else
 fi
 
 # Check for any kernel package update (CachyOS or standard Arch)
-if echo "$PACMAN_OUTPUT" | grep -qE 'linux-cachyos|^linux |linux-lts|linux-zen|linux-hardened'; then
+if echo "$PACMAN_OUTPUT" | grep -qE 'upgrading linux(-|$)'; then
     KERNEL_UPDATED=true
 fi
 
 # Check for GPU driver updates (NVIDIA, AMD, Intel)
-if echo "$PACMAN_OUTPUT" | grep -qE 'nvidia|nvidia-dkms|nvidia-lts|mesa|xf86-video-amdgpu|xf86-video-intel|vulkan-radeon|vulkan-intel'; then
+if echo "$PACMAN_OUTPUT" | grep -qE 'upgrading (nvidia|mesa|xf86-video|vulkan-|amdgpu)'; then
     GPU_UPDATED=true
 fi
 
@@ -414,21 +496,7 @@ if command -v flatpak &> /dev/null; then
     sudo -u "$ORIGINAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$ORIGINAL_UID/bus" flatpak uninstall --user --unused -y > /dev/null 2>&1
 fi
 
-# Check for .pacnew and .pacsave files
-echo "Checking for .pacnew/.pacsave files..."
-echo
-PACNEW_FILES=$(find /etc -name "*.pacnew" 2>/dev/null)
-PACSAVE_FILES=$(find /etc -name "*.pacsave" 2>/dev/null)
-
-if [ -n "$PACNEW_FILES" ]; then
-    echo "Found .pacnew files:"
-    echo "$PACNEW_FILES"
-fi
-
-if [ -n "$PACSAVE_FILES" ]; then
-    echo "Found .pacsave files:"
-    echo "$PACSAVE_FILES"
-fi
+handle_pacnew_files
 
 # List services using old libraries
 if command -v needrestart &> /dev/null; then
@@ -464,6 +532,11 @@ if [ "$KERNEL_UPDATED" = true ] || [ "$GPU_UPDATED" = true ]; then
     echo
 fi
 
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+MINUTES=$((DURATION / 60))
+SECONDS=$((DURATION % 60))
+
 log_summary
 reboot_prompt
 
@@ -497,6 +570,7 @@ printf "| %-34s |\n" "Orphans removed: $ORPHANS_REMOVED"
 printf "| %-34s |\n" "Cache cleaned: $CACHE_CLEANED"
 printf "| %-34s |\n" "Kernel updated: $([ "$KERNEL_UPDATED" = true ] && echo "YES" || echo "NO")"
 printf "| %-34s |\n" "GPU drivers updated: $([ "$GPU_UPDATED" = true ] && echo "YES" || echo "NO")"
+printf "| %-34s |\n" "Time taken: ${MINUTES}m ${SECONDS}s"
 echo "+------------------------------------+"
 
 notify_user "System Updated" "Yeehaw"
