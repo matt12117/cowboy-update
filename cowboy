@@ -521,8 +521,11 @@ echo "======================================="
 echo -e "${GREEN}Updating AUR Packages...${RESET}"
 echo "======================================="
 set +e
-AUR_OUTPUT=$(sudo -u "$ORIGINAL_USER" paru -Sua 2>&1 | tee /dev/tty)
-PARU_EXIT=$?
+AUR_LOG=$(mktemp)
+sudo -u "$ORIGINAL_USER" paru -Sua 2>&1 | tee /dev/tty > "$AUR_LOG"
+PARU_EXIT=${PIPESTATUS[0]}
+AUR_OUTPUT=$(cat "$AUR_LOG")
+rm -f "$AUR_LOG"
 set -e
 
 # Count AUR packages updated
