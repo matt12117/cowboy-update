@@ -236,7 +236,7 @@ warn_large_update() {
         NUM_UPDATES=$(echo "$UPDATE_LIST" | wc -l)
 
         # Threshold for "large update"
-        LARGE_UPDATE_THRESHOLD=50
+        LARGE_UPDATE_THRESHOLD=100
 
         if [ "$NUM_UPDATES" -gt $LARGE_UPDATE_THRESHOLD ]; then
             echo -e "${YELLOW}⚠️  There are $NUM_UPDATES packages to update.${RESET}"
